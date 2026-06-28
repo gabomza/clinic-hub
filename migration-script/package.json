@@ -1,0 +1,41 @@
+{
+  "name": "data-migration-script",
+  "version": "1.0.0",
+  "description": "Database migration script from MySQL to PostgreSQL (Supabase)",
+  "type": "module",
+  "main": "dist/migrate.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/migrate.ts",
+    "migrate": "node dist/migrate.js",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "migration",
+    "mysql",
+    "postgresql",
+    "database"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "natural": "^8.1.1",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/pg": "^8.11.3",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/ui": "^4.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
