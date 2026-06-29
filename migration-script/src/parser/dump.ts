@@ -22,11 +22,7 @@ const TABLES_IN_SCOPE = new Set([
 ]);
 
 // Tables explicitly excluded from migration
-const EXCLUDED_TABLES = new Set([
-  'inst_alt',
-  'medias',
-  'ventamedias',
-]);
+const EXCLUDED_TABLES = new Set(['inst_alt', 'medias', 'ventamedias']);
 
 /**
  * Raw row data: column name -> value (string | number | null)
@@ -111,11 +107,13 @@ function extractColumnsFromCreateTable(createTableSql: string): string[] {
     if (!trimmed) continue;
 
     // Skip PRIMARY KEY, UNIQUE, INDEX, etc.
-    if (trimmed.toUpperCase().startsWith('PRIMARY') ||
-        trimmed.toUpperCase().startsWith('UNIQUE') ||
-        trimmed.toUpperCase().startsWith('INDEX') ||
-        trimmed.toUpperCase().startsWith('KEY') ||
-        trimmed.startsWith('CONSTRAINT')) {
+    if (
+      trimmed.toUpperCase().startsWith('PRIMARY') ||
+      trimmed.toUpperCase().startsWith('UNIQUE') ||
+      trimmed.toUpperCase().startsWith('INDEX') ||
+      trimmed.toUpperCase().startsWith('KEY') ||
+      trimmed.startsWith('CONSTRAINT')
+    ) {
       continue;
     }
 
@@ -319,8 +317,7 @@ export async function parseDump(filePath: string): Promise<DumpParseResult> {
     }
 
     // Skip LOCK/UNLOCK statements
-    if (line.toUpperCase().includes('LOCK TABLES') ||
-        line.toUpperCase().includes('UNLOCK TABLES')) {
+    if (line.toUpperCase().includes('LOCK TABLES') || line.toUpperCase().includes('UNLOCK TABLES')) {
       continue;
     }
 
@@ -394,7 +391,7 @@ export async function parseDump(filePath: string): Promise<DumpParseResult> {
           if (valueRow.length !== table.columns.length) {
             throw new Error(
               `Row length mismatch in table '${tableName}' at line ~${lineNumber}: ` +
-              `expected ${table.columns.length} columns, got ${valueRow.length}`
+                `expected ${table.columns.length} columns, got ${valueRow.length}`,
             );
           }
 
@@ -407,7 +404,7 @@ export async function parseDump(filePath: string): Promise<DumpParseResult> {
       } catch (err) {
         const error = err as Error;
         throw new Error(
-          `Failed to parse INSERT statement for table '${tableName}' at line ~${lineNumber}: ${error.message}`
+          `Failed to parse INSERT statement for table '${tableName}' at line ~${lineNumber}: ${error.message}`,
         );
       }
     }

@@ -28,8 +28,8 @@ src/parser/
 
 ```typescript
 // Inside src/config/index.ts
-export type { MigrationConfig } from "./loader";
-export { loadConfig } from "./loader";
+export type { MigrationConfig } from './loader';
+export { loadConfig } from './loader';
 ```
 
 ### Technical Benefits

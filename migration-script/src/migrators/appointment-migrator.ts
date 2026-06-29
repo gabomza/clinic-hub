@@ -126,9 +126,7 @@ function parseDate(dateStr: any): string | null {
  * Resolve appointment status from legacy value.
  * Requirement 3.5: Map via APPOINTMENT_STATUS_MAP; unknown values → DEFAULT_APPOINTMENT_STATUS + warning
  */
-function resolveStatus(
-  turnoEstado: number | null | undefined,
-): { status: string; warning: string | null } {
+function resolveStatus(turnoEstado: number | null | undefined): { status: string; warning: string | null } {
   if (turnoEstado === null || turnoEstado === undefined) {
     // NULL estado → 'pending' without warning
     return { status: DEFAULT_APPOINTMENT_STATUS, warning: null };

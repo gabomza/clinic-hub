@@ -31,10 +31,7 @@ import type { MigrationConfig } from '../config/index';
 import type { DumpParseResult, RawRow } from '../parser/dump';
 import { parseDump } from '../parser/dump';
 import { createPostgresClient, PostgresClient } from '../db/client';
-import {
-  createMigrationLogStore,
-  MigrationLogStore,
-} from '../db/migration-log';
+import { createMigrationLogStore, MigrationLogStore } from '../db/migration-log';
 import { createReferenceDataMigrator } from '../migrators/reference-data-migrator';
 import { createPatientMigrator } from '../migrators/patient-migrator';
 import { createSurgeryMigrator } from '../migrators/surgery-migrator';
@@ -63,9 +60,7 @@ export type MigrationOrchestrationResult = {
  * Public interface for MigrationOrchestrator
  */
 export type MigrationOrchestrator = {
-  run(
-    config: MigrationConfig,
-  ): Promise<MigrationOrchestrationResult>;
+  run(config: MigrationConfig): Promise<MigrationOrchestrationResult>;
 };
 
 /**
@@ -88,24 +83,16 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
         }
 
         console.log('[ORCHESTRATOR] Starting migration process...');
-        console.log(
-          `[ORCHESTRATOR] Dump file: ${config.dumpFilePath}`,
-        );
-        console.log(
-          `[ORCHESTRATOR] Reset mode: ${config.resetMode}`,
-        );
+        console.log(`[ORCHESTRATOR] Dump file: ${config.dumpFilePath}`);
+        console.log(`[ORCHESTRATOR] Reset mode: ${config.resetMode}`);
 
         // Step 2: Parse dump (fail-fast on parse error)
         console.log('[ORCHESTRATOR] Parsing dump file...');
         const dumpResult = await parseDump(config.dumpFilePath);
 
-        console.log(
-          `[ORCHESTRATOR] Parsed ${dumpResult.tables.size} tables from dump`,
-        );
+        console.log(`[ORCHESTRATOR] Parsed ${dumpResult.tables.size} tables from dump`);
         if (dumpResult.excludedTables.length > 0) {
-          console.log(
-            `[ORCHESTRATOR] Excluded tables (intentional): ${dumpResult.excludedTables.join(', ')}`,
-          );
+          console.log(`[ORCHESTRATOR] Excluded tables (intentional): ${dumpResult.excludedTables.join(', ')}`);
         }
         if (dumpResult.unknownTables.length > 0) {
           console.log(
@@ -144,18 +131,12 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
 
         // Register excluded tables in report
         for (const tableName of dumpResult.excludedTables) {
-          reportBuilder.addExcludedTable(
-            tableName,
-            'Tabla sin equivalente en el nuevo esquema (Requirement 11.1)',
-          );
+          reportBuilder.addExcludedTable(tableName, 'Tabla sin equivalente en el nuevo esquema (Requirement 11.1)');
         }
 
         // Register unknown tables as warnings in report
         for (const tableName of dumpResult.unknownTables) {
-          reportBuilder.addExcludedTable(
-            tableName,
-            'Tabla no reconocida en el catálogo (se ignora con advertencia)',
-          );
+          reportBuilder.addExcludedTable(tableName, 'Tabla no reconocida en el catálogo (se ignora con advertencia)');
         }
 
         // Step 6: Migrate reference data (doctors, insurances, visit reasons, verify schedules)
@@ -169,39 +150,22 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
         });
 
         const insurancesTable = dumpResult.tables.get('inst_obrasoc');
-        const insurancesResult = await pgClient.withTransaction(
-          async (client) => {
-            const insurances = (insurancesTable?.rows || []) as any[];
-            return await referenceDataMigrator.migrateHealthInsurances(
-              insurances,
-              pgClient!,
-              logStore!,
-            );
-          },
-        );
+        const insurancesResult = await pgClient.withTransaction(async (client) => {
+          const insurances = (insurancesTable?.rows || []) as any[];
+          return await referenceDataMigrator.migrateHealthInsurances(insurances, pgClient!, logStore!);
+        });
 
         const visitReasonsTable = dumpResult.tables.get('inst_motivo');
-        const visitReasonsResult = await pgClient.withTransaction(
-          async (client) => {
-            const reasons = (visitReasonsTable?.rows || []) as any[];
-            return await referenceDataMigrator.migrateVisitReasons(
-              reasons,
-              pgClient!,
-              logStore!,
-            );
-          },
-        );
+        const visitReasonsResult = await pgClient.withTransaction(async (client) => {
+          const reasons = (visitReasonsTable?.rows || []) as any[];
+          return await referenceDataMigrator.migrateVisitReasons(reasons, pgClient!, logStore!);
+        });
 
         const schedulesTable = dumpResult.tables.get('inst_horarios');
-        const schedulesResult = await pgClient.withTransaction(
-          async (client) => {
-            const schedules = (schedulesTable?.rows || []) as any[];
-            return await referenceDataMigrator.verifySchedules(
-              schedules,
-              pgClient!,
-            );
-          },
-        );
+        const schedulesResult = await pgClient.withTransaction(async (client) => {
+          const schedules = (schedulesTable?.rows || []) as any[];
+          return await referenceDataMigrator.verifySchedules(schedules, pgClient!);
+        });
 
         // Collect schedule IDs for later validation
         const scheduleIds = new Set<number>();
@@ -229,11 +193,9 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
             if (legacyId) {
               // Query to find the new doctor ID
               const result = await pgClient.withTransaction(async (client) => {
-                const rows = await pgClient!.query<{ id: number }>(
-                  client,
-                  'SELECT id FROM doctors WHERE id = $1',
-                  [legacyId],
-                );
+                const rows = await pgClient!.query<{ id: number }>(client, 'SELECT id FROM doctors WHERE id = $1', [
+                  legacyId,
+                ]);
                 return rows.length > 0 ? rows[0].id : null;
               });
               if (result) {
@@ -245,12 +207,7 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
 
         const patientRows = (dumpResult.tables.get('fichas')?.rows || []) as any[];
         const patientResult = await pgClient.withTransaction(async (client) => {
-          return await patientMigrator.migrate(
-            patientRows,
-            doctorIdMap,
-            pgClient!,
-            logStore!,
-          );
+          return await patientMigrator.migrate(patientRows, doctorIdMap, pgClient!, logStore!);
         });
 
         console.log(
@@ -276,10 +233,7 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
             id: number;
             last_name: string;
             first_name: string;
-          }>(
-            client,
-            'SELECT id, last_name, first_name FROM patients ORDER BY id ASC',
-          );
+          }>(client, 'SELECT id, last_name, first_name FROM patients ORDER BY id ASC');
           return patients.map((p) => ({
             id: p.id,
             lastName: p.last_name,
@@ -287,9 +241,7 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
           }));
         });
 
-        console.log(
-          `[ORCHESTRATOR] Patient pool ready (${patientPool.length} patients)`,
-        );
+        console.log(`[ORCHESTRATOR] Patient pool ready (${patientPool.length} patients)`);
 
         // Step 10: Create patient matcher with config
         const matcherConfig: PatientMatcherConfig = {
@@ -303,24 +255,20 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
         const appointmentMigrator = createAppointmentMigrator();
         const appointmentRows = (dumpResult.tables.get('inst_turnos')?.rows || []) as any[];
 
-        const appointmentResult = await pgClient.withTransaction(
-          async (client) => {
-            return await appointmentMigrator.migrate(
-              appointmentRows,
-              {
-                scheduleIds,
-                patientPool,
-              },
-              patientMatcher,
-              pgClient!,
-              logStore!,
-            );
-          },
-        );
+        const appointmentResult = await pgClient.withTransaction(async (client) => {
+          return await appointmentMigrator.migrate(
+            appointmentRows,
+            {
+              scheduleIds,
+              patientPool,
+            },
+            patientMatcher,
+            pgClient!,
+            logStore!,
+          );
+        });
 
-        console.log(
-          `[ORCHESTRATOR] Appointment migration complete (${appointmentResult.migrated} inserted)`,
-        );
+        console.log(`[ORCHESTRATOR] Appointment migration complete (${appointmentResult.migrated} inserted)`);
 
         // Step 12: Migrate surgeries
         console.log('[ORCHESTRATOR] Migrating surgeries...');
@@ -336,30 +284,24 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
           );
         });
 
-        console.log(
-          `[ORCHESTRATOR] Surgery migration complete (${surgeryResult.migrated} inserted)`,
-        );
+        console.log(`[ORCHESTRATOR] Surgery migration complete (${surgeryResult.migrated} inserted)`);
 
         // Step 13: Migrate clinical records
         console.log('[ORCHESTRATOR] Migrating clinical records...');
         const clinicalRecordMigrator = createClinicalRecordMigrator();
         const clinicalRecordRows = (dumpResult.tables.get('historiaclinica')?.rows || []) as any[];
 
-        const clinicalRecordResult = await pgClient.withTransaction(
-          async (client) => {
-            return await clinicalRecordMigrator.migrate(
-              clinicalRecordRows,
-              patientResult.legacyIdToPatientId,
-              patientResult.visitFeeByLegacyPatientId,
-              pgClient!,
-              logStore!,
-            );
-          },
-        );
+        const clinicalRecordResult = await pgClient.withTransaction(async (client) => {
+          return await clinicalRecordMigrator.migrate(
+            clinicalRecordRows,
+            patientResult.legacyIdToPatientId,
+            patientResult.visitFeeByLegacyPatientId,
+            pgClient!,
+            logStore!,
+          );
+        });
 
-        console.log(
-          `[ORCHESTRATOR] Clinical record migration complete (${clinicalRecordResult.migrated} inserted)`,
-        );
+        console.log(`[ORCHESTRATOR] Clinical record migration complete (${clinicalRecordResult.migrated} inserted)`);
 
         // Step 14: Migrate cash entries
         console.log('[ORCHESTRATOR] Migrating cash entries...');
@@ -367,25 +309,17 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
         const cashEntryRows = (dumpResult.tables.get('caja')?.rows || []) as any[];
 
         const cashEntryResult = await pgClient.withTransaction(async (client) => {
-          return await cashEntryMigrator.migrate(
-            cashEntryRows,
-            pgClient!,
-            logStore!,
-          );
+          return await cashEntryMigrator.migrate(cashEntryRows, pgClient!, logStore!);
         });
 
-        console.log(
-          `[ORCHESTRATOR] Cash entry migration complete (${cashEntryResult.migrated} inserted)`,
-        );
+        console.log(`[ORCHESTRATOR] Cash entry migration complete (${cashEntryResult.migrated} inserted)`);
 
         // Step 15: Detect duplicate patients in destination
         console.log('[ORCHESTRATOR] Detecting duplicate patients...');
         const duplicatePairs = patientMatcher.detectDuplicatesInPool(patientPool);
 
         if (duplicatePairs.length > 0) {
-          console.log(
-            `[ORCHESTRATOR] Found ${duplicatePairs.length} possible duplicate patient pairs`,
-          );
+          console.log(`[ORCHESTRATOR] Found ${duplicatePairs.length} possible duplicate patient pairs`);
         }
 
         // Step 16: Build and write reports
@@ -505,19 +439,14 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
         }
 
         const report = reportBuilder.build(new Date());
-        const paths = await reportBuilder.writeToDisk(
-          report,
-          config.reportOutputDir,
-        );
+        const paths = await reportBuilder.writeToDisk(report, config.reportOutputDir);
 
         const executionTimeMs = Date.now() - startTime;
 
         console.log('[ORCHESTRATOR] Migration completed successfully');
         console.log(`[ORCHESTRATOR] JSON report: ${paths.jsonPath}`);
         console.log(`[ORCHESTRATOR] Markdown report: ${paths.mdPath}`);
-        console.log(
-          `[ORCHESTRATOR] Execution time: ${(executionTimeMs / 1000).toFixed(2)}s`,
-        );
+        console.log(`[ORCHESTRATOR] Execution time: ${(executionTimeMs / 1000).toFixed(2)}s`);
 
         return {
           success: true,
@@ -527,8 +456,7 @@ export function createMigrationOrchestrator(): MigrationOrchestrator {
         };
       } catch (error) {
         const executionTimeMs = Date.now() - startTime;
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
 
         console.error(`[ORCHESTRATOR] Migration failed: ${errorMessage}`);
 

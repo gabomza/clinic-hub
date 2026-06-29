@@ -19,27 +19,18 @@ import type { MigrationConfig } from '../../config/index';
  * Can be overridden via TEST_DATABASE_URL environment variable
  */
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ||
-  'postgresql://postgres:postgres@localhost:5432/migration_test';
+  process.env.TEST_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/migration_test';
 
 /**
  * Path to sample dump for integration testing
  * Expected to exist at project root or be provided by CI
  */
-const SAMPLE_DUMP_PATH = path.join(
-  __dirname,
-  '../../../..',
-  'sample_dump.sql',
-);
+const SAMPLE_DUMP_PATH = path.join(__dirname, '../../../..', 'sample_dump.sql');
 
 /**
  * Path to database schema file
  */
-const SCHEMA_SQL_PATH = path.join(
-  __dirname,
-  '../../../..',
-  'schema.sql',
-);
+const SCHEMA_SQL_PATH = path.join(__dirname, '../../../..', 'schema.sql');
 
 /**
  * Helper: Check if test database is available
@@ -134,9 +125,7 @@ describe('MigrationOrchestrator', () => {
     const available = await isDatabaseAvailable();
     isDbAvailable = available;
     if (!available) {
-      console.warn(
-        `[ORCHESTRATOR TEST] Test database not available at ${TEST_DATABASE_URL}`,
-      );
+      console.warn(`[ORCHESTRATOR TEST] Test database not available at ${TEST_DATABASE_URL}`);
       console.warn('[ORCHESTRATOR TEST] Skipping integration tests');
     }
   });
@@ -161,84 +150,81 @@ describe('MigrationOrchestrator', () => {
   });
 
   describe('End-to-end migration', () => {
-    it.skipIf(!isDbAvailable)(
-      'should execute complete migration against sample_dump.sql',
-      async () => {
-        // Check if sample dump exists
-        if (!fs.existsSync(SAMPLE_DUMP_PATH)) {
-          console.warn(`[ORCHESTRATOR TEST] Sample dump not found at ${SAMPLE_DUMP_PATH}`);
-          console.warn('[ORCHESTRATOR TEST] Skipping E2E test');
-          return;
+    it.skipIf(!isDbAvailable)('should execute complete migration against sample_dump.sql', async () => {
+      // Check if sample dump exists
+      if (!fs.existsSync(SAMPLE_DUMP_PATH)) {
+        console.warn(`[ORCHESTRATOR TEST] Sample dump not found at ${SAMPLE_DUMP_PATH}`);
+        console.warn('[ORCHESTRATOR TEST] Skipping E2E test');
+        return;
+      }
+
+      // Setup test database
+      await setupTestDatabase();
+
+      // Create migration configuration
+      const config: MigrationConfig = {
+        dumpFilePath: SAMPLE_DUMP_PATH,
+        databaseUrl: TEST_DATABASE_URL,
+        matchConfidenceThreshold: 0.92,
+        matchMinConsiderationThreshold: 0.75,
+        resetMode: 'log-only',
+        reportOutputDir: './test-reports',
+        insertBatchSize: 500,
+      };
+
+      // Ensure report directory exists
+      if (!fs.existsSync(config.reportOutputDir)) {
+        fs.mkdirSync(config.reportOutputDir, { recursive: true });
+      }
+
+      // Execute orchestrator
+      const orchestrator = createMigrationOrchestrator();
+      const result = await orchestrator.run(config);
+
+      // Assertions: Basic success
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(result.reportPaths).toBeDefined();
+
+      // Assertions: Report files exist
+      if (result.reportPaths) {
+        expect(fs.existsSync(result.reportPaths.jsonPath)).toBe(true);
+        expect(fs.existsSync(result.reportPaths.mdPath)).toBe(true);
+
+        // Assertions: Report content is valid
+        const jsonContent = fs.readFileSync(result.reportPaths.jsonPath, 'utf-8');
+        expect(() => JSON.parse(jsonContent)).not.toThrow();
+
+        const mdContent = fs.readFileSync(result.reportPaths.mdPath, 'utf-8');
+        expect(mdContent.length).toBeGreaterThan(0);
+        expect(mdContent).toContain('Migration Report');
+      }
+
+      // Assertions: Report object is valid
+      if (result.report) {
+        expect(result.report.summaryByTable).toBeDefined();
+        expect(typeof result.report.summaryByTable).toBe('object');
+        expect(result.report.excludedTables).toBeDefined();
+        expect(Array.isArray(result.report.excludedTables)).toBe(true);
+
+        // Assertions: Excluded tables are registered
+        const excludedTableNames = result.report.excludedTables.map((t) => t.name);
+        expect(excludedTableNames).toContain('inst_alt');
+        expect(excludedTableNames).toContain('medias');
+        expect(excludedTableNames).toContain('ventamedias');
+      }
+
+      // Cleanup test reports
+      try {
+        const reportFiles = fs.readdirSync(config.reportOutputDir);
+        for (const file of reportFiles) {
+          fs.unlinkSync(path.join(config.reportOutputDir, file));
         }
-
-        // Setup test database
-        await setupTestDatabase();
-
-        // Create migration configuration
-        const config: MigrationConfig = {
-          dumpFilePath: SAMPLE_DUMP_PATH,
-          databaseUrl: TEST_DATABASE_URL,
-          matchConfidenceThreshold: 0.92,
-          matchMinConsiderationThreshold: 0.75,
-          resetMode: 'log-only',
-          reportOutputDir: './test-reports',
-          insertBatchSize: 500,
-        };
-
-        // Ensure report directory exists
-        if (!fs.existsSync(config.reportOutputDir)) {
-          fs.mkdirSync(config.reportOutputDir, { recursive: true });
-        }
-
-        // Execute orchestrator
-        const orchestrator = createMigrationOrchestrator();
-        const result = await orchestrator.run(config);
-
-        // Assertions: Basic success
-        expect(result.success).toBe(true);
-        expect(result.error).toBeUndefined();
-        expect(result.reportPaths).toBeDefined();
-
-        // Assertions: Report files exist
-        if (result.reportPaths) {
-          expect(fs.existsSync(result.reportPaths.jsonPath)).toBe(true);
-          expect(fs.existsSync(result.reportPaths.mdPath)).toBe(true);
-
-          // Assertions: Report content is valid
-          const jsonContent = fs.readFileSync(result.reportPaths.jsonPath, 'utf-8');
-          expect(() => JSON.parse(jsonContent)).not.toThrow();
-
-          const mdContent = fs.readFileSync(result.reportPaths.mdPath, 'utf-8');
-          expect(mdContent.length).toBeGreaterThan(0);
-          expect(mdContent).toContain('Migration Report');
-        }
-
-        // Assertions: Report object is valid
-        if (result.report) {
-          expect(result.report.summaryByTable).toBeDefined();
-          expect(typeof result.report.summaryByTable).toBe('object');
-          expect(result.report.excludedTables).toBeDefined();
-          expect(Array.isArray(result.report.excludedTables)).toBe(true);
-
-          // Assertions: Excluded tables are registered
-          const excludedTableNames = result.report.excludedTables.map((t) => t.name);
-          expect(excludedTableNames).toContain('inst_alt');
-          expect(excludedTableNames).toContain('medias');
-          expect(excludedTableNames).toContain('ventamedias');
-        }
-
-        // Cleanup test reports
-        try {
-          const reportFiles = fs.readdirSync(config.reportOutputDir);
-          for (const file of reportFiles) {
-            fs.unlinkSync(path.join(config.reportOutputDir, file));
-          }
-          fs.rmdirSync(config.reportOutputDir);
-        } catch (err) {
-          console.warn('[ORCHESTRATOR TEST] Report cleanup failed');
-        }
-      },
-    );
+        fs.rmdirSync(config.reportOutputDir);
+      } catch (err) {
+        console.warn('[ORCHESTRATOR TEST] Report cleanup failed');
+      }
+    });
   });
 
   describe('Configuration validation', () => {
@@ -405,131 +391,122 @@ describe('MigrationOrchestrator', () => {
      * stable between runs. Additionally, Requirement 9.5 verifies that patient
      * matching (Requirement 6) is deterministic.
      */
-    it.skipIf(!isDbAvailable)(
-      'E2E: Second run does not change row counts (Requirement 9.1, 9.5)',
-      async () => {
-        // Skip if sample dump is not available
-        if (!fs.existsSync(SAMPLE_DUMP_PATH)) {
-          console.warn('[ORCHESTRATOR TEST] Sample dump not found, skipping idempotence test');
-          return;
+    it.skipIf(!isDbAvailable)('E2E: Second run does not change row counts (Requirement 9.1, 9.5)', async () => {
+      // Skip if sample dump is not available
+      if (!fs.existsSync(SAMPLE_DUMP_PATH)) {
+        console.warn('[ORCHESTRATOR TEST] Sample dump not found, skipping idempotence test');
+        return;
+      }
+
+      // Setup: Create fresh test database with schema + seeds
+      await setupTestDatabase();
+
+      const reportDir = './test-reports-idempotence-1';
+      if (!fs.existsSync(reportDir)) {
+        fs.mkdirSync(reportDir, { recursive: true });
+      }
+
+      const config: MigrationConfig = {
+        dumpFilePath: SAMPLE_DUMP_PATH,
+        databaseUrl: TEST_DATABASE_URL,
+        matchConfidenceThreshold: 0.92,
+        matchMinConsiderationThreshold: 0.75,
+        resetMode: 'log-only',
+        reportOutputDir: reportDir,
+        insertBatchSize: 500,
+      };
+
+      const orchestrator = createMigrationOrchestrator();
+
+      // Run 1: Execute the first migration
+      console.log('[IDEMPOTENCE TEST 1] Running first migration...');
+      const result1 = await orchestrator.run(config);
+
+      if (!result1.success) {
+        console.error('[IDEMPOTENCE TEST 1] Migration failed:', result1.error);
+      }
+      expect(result1.success).toBe(true);
+      expect(result1.report).toBeDefined();
+
+      // Capture row counts from first run
+      const pool1 = new Pool({ connectionString: TEST_DATABASE_URL });
+      try {
+        const counts1: Record<string, number> = {};
+
+        const tables = [
+          'patients',
+          'appointments',
+          'clinical_records',
+          'surgeries',
+          'cash_entries',
+          'doctors',
+          'health_insurances',
+          'visit_reasons',
+          'surgery_diagnoses',
+          'body_parts',
+          'surgery_techniques',
+        ];
+
+        for (const table of tables) {
+          const result = await pool1.query<{ count: bigint }>(`SELECT COUNT(*) as count FROM ${table}`);
+          counts1[table] = Number(result.rows[0].count);
         }
 
-        // Setup: Create fresh test database with schema + seeds
-        await setupTestDatabase();
+        console.log('[IDEMPOTENCE TEST 1] Row counts after run 1:', counts1);
 
-        const reportDir = './test-reports-idempotence-1';
-        if (!fs.existsSync(reportDir)) {
-          fs.mkdirSync(reportDir, { recursive: true });
+        // Run 2: Execute the migration again on the same database with same dump
+        console.log('[IDEMPOTENCE TEST 1] Running second migration...');
+        const result2 = await orchestrator.run(config);
+
+        expect(result2.success).toBe(true);
+        expect(result2.report).toBeDefined();
+
+        // Capture row counts from second run
+        const counts2: Record<string, number> = {};
+        for (const table of tables) {
+          const result = await pool1.query<{ count: bigint }>(`SELECT COUNT(*) as count FROM ${table}`);
+          counts2[table] = Number(result.rows[0].count);
         }
 
-        const config: MigrationConfig = {
-          dumpFilePath: SAMPLE_DUMP_PATH,
-          databaseUrl: TEST_DATABASE_URL,
-          matchConfidenceThreshold: 0.92,
-          matchMinConsiderationThreshold: 0.75,
-          resetMode: 'log-only',
-          reportOutputDir: reportDir,
-          insertBatchSize: 500,
-        };
+        console.log('[IDEMPOTENCE TEST 1] Row counts after run 2:', counts2);
 
-        const orchestrator = createMigrationOrchestrator();
-
-        // Run 1: Execute the first migration
-        console.log('[IDEMPOTENCE TEST 1] Running first migration...');
-        const result1 = await orchestrator.run(config);
-
-        if (!result1.success) {
-          console.error('[IDEMPOTENCE TEST 1] Migration failed:', result1.error);
+        // Assert: Row counts must be identical between runs
+        // This verifies that no duplicates were created and existing rows were properly reused
+        for (const table of tables) {
+          console.log(`[IDEMPOTENCE TEST 1] ${table}: Run1=${counts1[table]}, Run2=${counts2[table]}`);
+          expect(counts2[table]).toBe(counts1[table]);
         }
-        expect(result1.success).toBe(true);
-        expect(result1.report).toBeDefined();
 
-        // Capture row counts from first run
-        const pool1 = new Pool({ connectionString: TEST_DATABASE_URL });
-        try {
-          const counts1: Record<string, number> = {};
-
-          const tables = [
-            'patients',
-            'appointments',
-            'clinical_records',
-            'surgeries',
-            'cash_entries',
-            'doctors',
-            'health_insurances',
-            'visit_reasons',
-            'surgery_diagnoses',
-            'body_parts',
-            'surgery_techniques',
-          ];
-
-          for (const table of tables) {
-            const result = await pool1.query<{ count: bigint }>(
-              `SELECT COUNT(*) as count FROM ${table}`,
-            );
-            counts1[table] = Number(result.rows[0].count);
-          }
-
-          console.log('[IDEMPOTENCE TEST 1] Row counts after run 1:', counts1);
-
-          // Run 2: Execute the migration again on the same database with same dump
-          console.log('[IDEMPOTENCE TEST 1] Running second migration...');
-          const result2 = await orchestrator.run(config);
-
-          expect(result2.success).toBe(true);
-          expect(result2.report).toBeDefined();
-
-          // Capture row counts from second run
-          const counts2: Record<string, number> = {};
-          for (const table of tables) {
-            const result = await pool1.query<{ count: bigint }>(
-              `SELECT COUNT(*) as count FROM ${table}`,
-            );
-            counts2[table] = Number(result.rows[0].count);
-          }
-
-          console.log('[IDEMPOTENCE TEST 1] Row counts after run 2:', counts2);
-
-          // Assert: Row counts must be identical between runs
-          // This verifies that no duplicates were created and existing rows were properly reused
-          for (const table of tables) {
+        // Additional verification: Report should show migrated=0, reused=N for tables in Run 2
+        // (indicating that all rows were already processed)
+        if (result2.report?.summaryByTable) {
+          // For tables that had rows in Run 1, Run 2 should show them as reused (migrated=0)
+          const patientsTableSummary = result2.report.summaryByTable['fichas'];
+          if (patientsTableSummary && patientsTableSummary.migrated > 0) {
+            // If there are patients in the dump, the second run should show them as reused
             console.log(
-              `[IDEMPOTENCE TEST 1] ${table}: Run1=${counts1[table]}, Run2=${counts2[table]}`
+              `[IDEMPOTENCE TEST 1] Patients summary: migrated=${patientsTableSummary.migrated}, reused=${patientsTableSummary.reused}`,
             );
-            expect(counts2[table]).toBe(counts1[table]);
+            expect(patientsTableSummary.reused).toBeGreaterThan(0);
           }
-
-          // Additional verification: Report should show migrated=0, reused=N for tables in Run 2
-          // (indicating that all rows were already processed)
-          if (result2.report?.summaryByTable) {
-            // For tables that had rows in Run 1, Run 2 should show them as reused (migrated=0)
-            const patientsTableSummary = result2.report.summaryByTable['fichas'];
-            if (patientsTableSummary && patientsTableSummary.migrated > 0) {
-              // If there are patients in the dump, the second run should show them as reused
-              console.log(
-                `[IDEMPOTENCE TEST 1] Patients summary: migrated=${patientsTableSummary.migrated}, reused=${patientsTableSummary.reused}`
-              );
-              expect(patientsTableSummary.reused).toBeGreaterThan(0);
-            }
-          }
-
-          console.log('[IDEMPOTENCE TEST 1] ✓ Idempotence verified: row counts unchanged');
-        } finally {
-          await pool1.end();
         }
 
-        // Cleanup
-        try {
-          const files = fs.readdirSync(reportDir);
-          for (const file of files) {
-            fs.unlinkSync(path.join(reportDir, file));
-          }
-          fs.rmdirSync(reportDir);
-        } catch (err) {
-          console.warn('[IDEMPOTENCE TEST 1] Report cleanup failed');
+        console.log('[IDEMPOTENCE TEST 1] ✓ Idempotence verified: row counts unchanged');
+      } finally {
+        await pool1.end();
+      }
+
+      // Cleanup
+      try {
+        const files = fs.readdirSync(reportDir);
+        for (const file of files) {
+          fs.unlinkSync(path.join(reportDir, file));
         }
-      },
-    );
+        fs.rmdirSync(reportDir);
+      } catch (err) {
+        console.warn('[IDEMPOTENCE TEST 1] Report cleanup failed');
+      }
+    });
 
     /**
      * Test 2: E2E - Reset full mode allows re-processing from scratch
@@ -579,16 +556,12 @@ describe('MigrationOrchestrator', () => {
         // Capture row counts and verify migration_log has entries
         const pool1 = new Pool({ connectionString: TEST_DATABASE_URL });
         try {
-          const logCountResult1 = await pool1.query<{ count: bigint }>(
-            'SELECT COUNT(*) as count FROM migration_log',
-          );
+          const logCountResult1 = await pool1.query<{ count: bigint }>('SELECT COUNT(*) as count FROM migration_log');
           const logCount1 = Number(logCountResult1.rows[0].count);
           console.log('[RESET TEST] migration_log entries after run 1:', logCount1);
           expect(logCount1).toBeGreaterThan(0);
 
-          const patientsCountResult1 = await pool1.query<{ count: bigint }>(
-            'SELECT COUNT(*) as count FROM patients',
-          );
+          const patientsCountResult1 = await pool1.query<{ count: bigint }>('SELECT COUNT(*) as count FROM patients');
           const patientsCount1 = Number(patientsCountResult1.rows[0].count);
           console.log('[RESET TEST] patients count after run 1:', patientsCount1);
 
@@ -603,22 +576,16 @@ describe('MigrationOrchestrator', () => {
           expect(result2.success).toBe(true);
 
           // Verify: migration_log should be repopulated (not empty)
-          const logCountResult2 = await pool1.query<{ count: bigint }>(
-            'SELECT COUNT(*) as count FROM migration_log',
-          );
+          const logCountResult2 = await pool1.query<{ count: bigint }>('SELECT COUNT(*) as count FROM migration_log');
           const logCount2 = Number(logCountResult2.rows[0].count);
           console.log('[RESET TEST] migration_log entries after reset+run 2:', logCount2);
           expect(logCount2).toBeGreaterThan(0);
 
           // Verify: patients count should be the same as after run 1
-          const patientsCountResult2 = await pool1.query<{ count: bigint }>(
-            'SELECT COUNT(*) as count FROM patients',
-          );
+          const patientsCountResult2 = await pool1.query<{ count: bigint }>('SELECT COUNT(*) as count FROM patients');
           const patientsCount2 = Number(patientsCountResult2.rows[0].count);
           console.log('[RESET TEST] patients count after reset+run 2:', patientsCount2);
-          console.log(
-            `[RESET TEST] Count comparison: Run1=${patientsCount1}, Run2=${patientsCount2}`
-          );
+          console.log(`[RESET TEST] Count comparison: Run1=${patientsCount1}, Run2=${patientsCount2}`);
           expect(patientsCount2).toBe(patientsCount1);
 
           // Verify: Report should show migrated=N, reused=0 for Run 2 (after reset)
@@ -656,134 +623,117 @@ describe('MigrationOrchestrator', () => {
      * This test verifies that the fuzzy matching algorithm and decision logic
      * produce identical outcomes in repeated executions.
      */
-    it.skipIf(!isDbAvailable)(
-      'E2E: Patient matching results are deterministic (Requirement 6.7, 9.5)',
-      async () => {
-        // Skip if sample dump is not available
-        if (!fs.existsSync(SAMPLE_DUMP_PATH)) {
-          console.warn('[ORCHESTRATOR TEST] Sample dump not found, skipping determinism test');
-          return;
-        }
+    it.skipIf(!isDbAvailable)('E2E: Patient matching results are deterministic (Requirement 6.7, 9.5)', async () => {
+      // Skip if sample dump is not available
+      if (!fs.existsSync(SAMPLE_DUMP_PATH)) {
+        console.warn('[ORCHESTRATOR TEST] Sample dump not found, skipping determinism test');
+        return;
+      }
 
-        // Setup: Create fresh test database with schema + seeds
-        await setupTestDatabase();
+      // Setup: Create fresh test database with schema + seeds
+      await setupTestDatabase();
 
-        const reportDir = './test-reports-determinism';
-        if (!fs.existsSync(reportDir)) {
-          fs.mkdirSync(reportDir, { recursive: true });
-        }
+      const reportDir = './test-reports-determinism';
+      if (!fs.existsSync(reportDir)) {
+        fs.mkdirSync(reportDir, { recursive: true });
+      }
 
-        const config: MigrationConfig = {
-          dumpFilePath: SAMPLE_DUMP_PATH,
-          databaseUrl: TEST_DATABASE_URL,
-          matchConfidenceThreshold: 0.92,
-          matchMinConsiderationThreshold: 0.75,
-          resetMode: 'log-only',
-          reportOutputDir: reportDir,
-          insertBatchSize: 500,
-        };
+      const config: MigrationConfig = {
+        dumpFilePath: SAMPLE_DUMP_PATH,
+        databaseUrl: TEST_DATABASE_URL,
+        matchConfidenceThreshold: 0.92,
+        matchMinConsiderationThreshold: 0.75,
+        resetMode: 'log-only',
+        reportOutputDir: reportDir,
+        insertBatchSize: 500,
+      };
 
-        const orchestrator = createMigrationOrchestrator();
+      const orchestrator = createMigrationOrchestrator();
 
-        // Run 1: Execute the first migration and capture matching outcomes
-        console.log('[DETERMINISM TEST] Running first migration...');
-        const result1 = await orchestrator.run(config);
+      // Run 1: Execute the first migration and capture matching outcomes
+      console.log('[DETERMINISM TEST] Running first migration...');
+      const result1 = await orchestrator.run(config);
 
-        if (!result1.success) {
-          console.error('[DETERMINISM TEST] Migration failed:', result1.error);
-        }
-        expect(result1.success).toBe(true);
-        expect(result1.report).toBeDefined();
+      if (!result1.success) {
+        console.error('[DETERMINISM TEST] Migration failed:', result1.error);
+      }
+      expect(result1.success).toBe(true);
+      expect(result1.report).toBeDefined();
 
-        // Extract patient matching outcomes from Run 1
-        const matching1 = result1.report?.patientMatching;
-        const autoLinkedCount1 = matching1?.autoLinked?.count ?? 0;
-        const manualReviewCount1 = matching1?.manualReview?.count ?? 0;
-        const noMatchCount1 = matching1?.noMatch?.count ?? 0;
+      // Extract patient matching outcomes from Run 1
+      const matching1 = result1.report?.patientMatching;
+      const autoLinkedCount1 = matching1?.autoLinked?.count ?? 0;
+      const manualReviewCount1 = matching1?.manualReview?.count ?? 0;
+      const noMatchCount1 = matching1?.noMatch?.count ?? 0;
 
-        console.log('[DETERMINISM TEST] Run 1 matching outcomes:');
-        console.log(`  - Auto-linked: ${autoLinkedCount1}`);
-        console.log(`  - Manual review: ${manualReviewCount1}`);
-        console.log(`  - No match: ${noMatchCount1}`);
+      console.log('[DETERMINISM TEST] Run 1 matching outcomes:');
+      console.log(`  - Auto-linked: ${autoLinkedCount1}`);
+      console.log(`  - Manual review: ${manualReviewCount1}`);
+      console.log(`  - No match: ${noMatchCount1}`);
 
-        // Run 2: Execute the migration again
-        console.log('[DETERMINISM TEST] Running second migration...');
-        const result2 = await orchestrator.run(config);
+      // Run 2: Execute the migration again
+      console.log('[DETERMINISM TEST] Running second migration...');
+      const result2 = await orchestrator.run(config);
 
-        expect(result2.success).toBe(true);
-        expect(result2.report).toBeDefined();
+      expect(result2.success).toBe(true);
+      expect(result2.report).toBeDefined();
 
-        // Extract patient matching outcomes from Run 2
-        const matching2 = result2.report?.patientMatching;
-        const autoLinkedCount2 = matching2?.autoLinked?.count ?? 0;
-        const manualReviewCount2 = matching2?.manualReview?.count ?? 0;
-        const noMatchCount2 = matching2?.noMatch?.count ?? 0;
+      // Extract patient matching outcomes from Run 2
+      const matching2 = result2.report?.patientMatching;
+      const autoLinkedCount2 = matching2?.autoLinked?.count ?? 0;
+      const manualReviewCount2 = matching2?.manualReview?.count ?? 0;
+      const noMatchCount2 = matching2?.noMatch?.count ?? 0;
 
-        console.log('[DETERMINISM TEST] Run 2 matching outcomes:');
-        console.log(`  - Auto-linked: ${autoLinkedCount2}`);
-        console.log(`  - Manual review: ${manualReviewCount2}`);
-        console.log(`  - No match: ${noMatchCount2}`);
+      console.log('[DETERMINISM TEST] Run 2 matching outcomes:');
+      console.log(`  - Auto-linked: ${autoLinkedCount2}`);
+      console.log(`  - Manual review: ${manualReviewCount2}`);
+      console.log(`  - No match: ${noMatchCount2}`);
 
-        // Assert: Matching outcome counts must be identical
-        console.log(
-          `[DETERMINISM TEST] Auto-linked comparison: Run1=${autoLinkedCount1}, Run2=${autoLinkedCount2}`
-        );
-        console.log(
-          `[DETERMINISM TEST] Manual review comparison: Run1=${manualReviewCount1}, Run2=${manualReviewCount2}`
-        );
-        console.log(
-          `[DETERMINISM TEST] No-match comparison: Run1=${noMatchCount1}, Run2=${noMatchCount2}`
-        );
-        expect(autoLinkedCount2).toBe(autoLinkedCount1);
-        expect(manualReviewCount2).toBe(manualReviewCount1);
-        expect(noMatchCount2).toBe(noMatchCount1);
+      // Assert: Matching outcome counts must be identical
+      console.log(`[DETERMINISM TEST] Auto-linked comparison: Run1=${autoLinkedCount1}, Run2=${autoLinkedCount2}`);
+      console.log(
+        `[DETERMINISM TEST] Manual review comparison: Run1=${manualReviewCount1}, Run2=${manualReviewCount2}`,
+      );
+      console.log(`[DETERMINISM TEST] No-match comparison: Run1=${noMatchCount1}, Run2=${noMatchCount2}`);
+      expect(autoLinkedCount2).toBe(autoLinkedCount1);
+      expect(manualReviewCount2).toBe(manualReviewCount1);
+      expect(noMatchCount2).toBe(noMatchCount1);
 
-        // Detailed verification: Check that specific patient matching results are identical
-        // by verifying that the same patients were matched with the same scores
-        if (
-          autoLinkedCount1 > 0 &&
-          matching1?.autoLinked?.examples &&
-          matching2?.autoLinked?.examples
-        ) {
-          // For determinism, the order and content should be identical
-          const examples1 = matching1.autoLinked.examples;
-          const examples2 = matching2.autoLinked.examples;
-          for (
-            let i = 0;
-            i < Math.min(examples1.length, examples2.length);
-            i++
-          ) {
-            const link1 = examples1[i];
-            const link2 = examples2[i];
+      // Detailed verification: Check that specific patient matching results are identical
+      // by verifying that the same patients were matched with the same scores
+      if (autoLinkedCount1 > 0 && matching1?.autoLinked?.examples && matching2?.autoLinked?.examples) {
+        // For determinism, the order and content should be identical
+        const examples1 = matching1.autoLinked.examples;
+        const examples2 = matching2.autoLinked.examples;
+        for (let i = 0; i < Math.min(examples1.length, examples2.length); i++) {
+          const link1 = examples1[i];
+          const link2 = examples2[i];
 
-            if (link1 && link2) {
-              // Check that the same patient was linked with same (or very close) score
-              console.log(
-                `[DETERMINISM TEST] Comparing example ${i}: ${link1.sourceName} vs ${link2.sourceName}`
-              );
-              expect(link2.sourceName).toBe(link1.sourceName);
-              // Allow minor floating point differences in score
-              if (link1.score !== undefined && link2.score !== undefined) {
-                expect(Math.abs(link2.score - link1.score)).toBeLessThan(0.0001);
-              }
+          if (link1 && link2) {
+            // Check that the same patient was linked with same (or very close) score
+            console.log(`[DETERMINISM TEST] Comparing example ${i}: ${link1.sourceName} vs ${link2.sourceName}`);
+            expect(link2.sourceName).toBe(link1.sourceName);
+            // Allow minor floating point differences in score
+            if (link1.score !== undefined && link2.score !== undefined) {
+              expect(Math.abs(link2.score - link1.score)).toBeLessThan(0.0001);
             }
           }
         }
+      }
 
-        console.log('[DETERMINISM TEST] ✓ Patient matching is deterministic');
+      console.log('[DETERMINISM TEST] ✓ Patient matching is deterministic');
 
-        // Cleanup
-        try {
-          const files = fs.readdirSync(reportDir);
-          for (const file of files) {
-            fs.unlinkSync(path.join(reportDir, file));
-          }
-          fs.rmdirSync(reportDir);
-        } catch (err) {
-          console.warn('[DETERMINISM TEST] Report cleanup failed');
+      // Cleanup
+      try {
+        const files = fs.readdirSync(reportDir);
+        for (const file of files) {
+          fs.unlinkSync(path.join(reportDir, file));
         }
-      },
-    );
+        fs.rmdirSync(reportDir);
+      } catch (err) {
+        console.warn('[DETERMINISM TEST] Report cleanup failed');
+      }
+    });
   });
 
   describe('MigrationOrchestrator - Synthetic Volume Test (Requirement 10.3, 10.5)', () => {
@@ -811,213 +761,189 @@ describe('MigrationOrchestrator', () => {
      * 5. Execution completes in reasonable time (<120s, ideally ~30-60s)
      * 6. No code changes needed for larger volume
      */
-    it.skipIf(!isDbAvailable)(
-      'E2E: Handles 10x volume without errors and within reasonable time',
-      async () => {
-        // Require the synthetic fixture generator
-        const { generateSyntheticMysqlDump } = await import(
-          '../../__tests__/fixtures/synthetic'
-        );
+    it.skipIf(!isDbAvailable)('E2E: Handles 10x volume without errors and within reasonable time', async () => {
+      // Require the synthetic fixture generator
+      const { generateSyntheticMysqlDump } = await import('../../__tests__/fixtures/synthetic');
 
-        // Setup: Create fresh test database with schema + seeds
-        await setupTestDatabase();
+      // Setup: Create fresh test database with schema + seeds
+      await setupTestDatabase();
 
-        const reportDir = './test-reports-synthetic-volume';
-        if (!fs.existsSync(reportDir)) {
-          fs.mkdirSync(reportDir, { recursive: true });
+      const reportDir = './test-reports-synthetic-volume';
+      if (!fs.existsSync(reportDir)) {
+        fs.mkdirSync(reportDir, { recursive: true });
+      }
+
+      // Generate synthetic dump with 10x volume
+      console.log('[SYNTHETIC VOLUME TEST] Generating synthetic dump with 10x volume...');
+      const syntheticDump = generateSyntheticMysqlDump({
+        fichasCount: 500,
+        turnosCount: 200,
+        cirugiasCount: 100,
+        historiaclinicaCount: 300,
+        cajaCount: 400,
+      });
+
+      // Write synthetic dump to temporary file
+      const tmpDir = require('os').tmpdir();
+      const syntheticDumpPath = path.join(tmpDir, `synthetic-dump-${Date.now()}.sql`);
+
+      try {
+        fs.writeFileSync(syntheticDumpPath, syntheticDump, 'utf-8');
+        console.log(`[SYNTHETIC VOLUME TEST] Synthetic dump generated (${syntheticDump.length} bytes)`);
+
+        // Verify synthetic dump file size
+        const dumpStats = fs.statSync(syntheticDumpPath);
+        console.log(`[SYNTHETIC VOLUME TEST] Synthetic dump file size: ${(dumpStats.size / 1024).toFixed(2)} KB`);
+
+        const config: MigrationConfig = {
+          dumpFilePath: syntheticDumpPath,
+          databaseUrl: TEST_DATABASE_URL,
+          matchConfidenceThreshold: 0.92,
+          matchMinConsiderationThreshold: 0.75,
+          resetMode: 'log-only',
+          reportOutputDir: reportDir,
+          insertBatchSize: 500, // Standard batch size
+        };
+
+        // Execute orchestrator against synthetic dump
+        console.log('[SYNTHETIC VOLUME TEST] Starting migration...');
+        const startTime = Date.now();
+
+        const orchestrator = createMigrationOrchestrator();
+        const result = await orchestrator.run(config);
+
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        console.log(`[SYNTHETIC VOLUME TEST] Migration completed in ${elapsedSeconds.toFixed(2)}s`);
+
+        // Assertion 1: Migration must succeed
+        expect(result.success).toBe(true);
+        expect(result.error).toBeUndefined();
+        if (!result.success) {
+          console.error('[SYNTHETIC VOLUME TEST] Migration failed:', result.error);
         }
 
-        // Generate synthetic dump with 10x volume
-        console.log('[SYNTHETIC VOLUME TEST] Generating synthetic dump with 10x volume...');
-        const syntheticDump = generateSyntheticMysqlDump({
-          fichasCount: 500,
-          turnosCount: 200,
-          cirugiasCount: 100,
-          historiaclinicaCount: 300,
-          cajaCount: 400,
-        });
+        // Assertion 2: Performance: Should complete within 120s (ideally 30-60s)
+        expect(elapsedSeconds).toBeLessThan(120);
+        console.log(`[SYNTHETIC VOLUME TEST] ✓ Performance acceptable: ${elapsedSeconds.toFixed(2)}s`);
 
-        // Write synthetic dump to temporary file
-        const tmpDir = require('os').tmpdir();
-        const syntheticDumpPath = path.join(
-          tmpDir,
-          `synthetic-dump-${Date.now()}.sql`
-        );
+        // Assertion 3: Reports must be generated
+        expect(result.reportPaths).toBeDefined();
+        if (result.reportPaths) {
+          expect(fs.existsSync(result.reportPaths.jsonPath)).toBe(true);
+          expect(fs.existsSync(result.reportPaths.mdPath)).toBe(true);
+          console.log(`[SYNTHETIC VOLUME TEST] ✓ Reports generated successfully`);
 
+          // Assertion 4: Report JSON is valid
+          const jsonContent = fs.readFileSync(result.reportPaths.jsonPath, 'utf-8');
+          expect(() => JSON.parse(jsonContent)).not.toThrow();
+
+          const reportJson = JSON.parse(jsonContent);
+          expect(reportJson).toHaveProperty('summaryByTable');
+          expect(reportJson).toHaveProperty('excludedTables');
+          expect(reportJson).toHaveProperty('patientMatching');
+          expect(reportJson).toHaveProperty('errors');
+          expect(reportJson).toHaveProperty('warnings');
+
+          // Assertion 5: Report Markdown is well-formed
+          const mdContent = fs.readFileSync(result.reportPaths.mdPath, 'utf-8');
+          expect(mdContent.length).toBeGreaterThan(0);
+          expect(mdContent).toContain('# Migration Report');
+          expect(mdContent).toContain('##'); // Section headers
+        }
+
+        // Assertion 6: Verify row counts in database match expected values
+        const pool = new Pool({ connectionString: TEST_DATABASE_URL });
         try {
-          fs.writeFileSync(syntheticDumpPath, syntheticDump, 'utf-8');
-          console.log(
-            `[SYNTHETIC VOLUME TEST] Synthetic dump generated (${syntheticDump.length} bytes)`
-          );
-
-          // Verify synthetic dump file size
-          const dumpStats = fs.statSync(syntheticDumpPath);
-          console.log(
-            `[SYNTHETIC VOLUME TEST] Synthetic dump file size: ${(dumpStats.size / 1024).toFixed(2)} KB`
-          );
-
-          const config: MigrationConfig = {
-            dumpFilePath: syntheticDumpPath,
-            databaseUrl: TEST_DATABASE_URL,
-            matchConfidenceThreshold: 0.92,
-            matchMinConsiderationThreshold: 0.75,
-            resetMode: 'log-only',
-            reportOutputDir: reportDir,
-            insertBatchSize: 500, // Standard batch size
+          const queries = {
+            patients: 'SELECT COUNT(*) as count FROM patients',
+            appointments: 'SELECT COUNT(*) as count FROM appointments',
+            clinical_records: 'SELECT COUNT(*) as count FROM clinical_records',
+            surgeries: 'SELECT COUNT(*) as count FROM surgeries',
+            cash_entries: 'SELECT COUNT(*) as count FROM cash_entries',
+            doctors: 'SELECT COUNT(*) as count FROM doctors',
+            health_insurances: 'SELECT COUNT(*) as count FROM health_insurances',
+            visit_reasons: 'SELECT COUNT(*) as count FROM visit_reasons',
+            surgery_diagnoses: 'SELECT COUNT(*) as count FROM surgery_diagnoses',
+            body_parts: 'SELECT COUNT(*) as count FROM body_parts',
+            surgery_techniques: 'SELECT COUNT(*) as count FROM surgery_techniques',
           };
 
-          // Execute orchestrator against synthetic dump
-          console.log('[SYNTHETIC VOLUME TEST] Starting migration...');
-          const startTime = Date.now();
-
-          const orchestrator = createMigrationOrchestrator();
-          const result = await orchestrator.run(config);
-
-          const elapsedSeconds = (Date.now() - startTime) / 1000;
-          console.log(
-            `[SYNTHETIC VOLUME TEST] Migration completed in ${elapsedSeconds.toFixed(2)}s`
-          );
-
-          // Assertion 1: Migration must succeed
-          expect(result.success).toBe(true);
-          expect(result.error).toBeUndefined();
-          if (!result.success) {
-            console.error('[SYNTHETIC VOLUME TEST] Migration failed:', result.error);
+          const counts: Record<string, number> = {};
+          for (const [table, query] of Object.entries(queries)) {
+            const result = await pool.query<{ count: bigint }>(query);
+            counts[table] = Number(result.rows[0].count);
           }
 
-          // Assertion 2: Performance: Should complete within 120s (ideally 30-60s)
-          expect(elapsedSeconds).toBeLessThan(120);
-          console.log(
-            `[SYNTHETIC VOLUME TEST] ✓ Performance acceptable: ${elapsedSeconds.toFixed(2)}s`
-          );
+          console.log('[SYNTHETIC VOLUME TEST] Final row counts:');
+          console.log(`  patients: ${counts.patients}`);
+          console.log(`  appointments: ${counts.appointments}`);
+          console.log(`  clinical_records: ${counts.clinical_records}`);
+          console.log(`  surgeries: ${counts.surgeries}`);
+          console.log(`  cash_entries: ${counts.cash_entries}`);
+          console.log(`  doctors: ${counts.doctors}`);
+          console.log(`  health_insurances: ${counts.health_insurances}`);
+          console.log(`  visit_reasons: ${counts.visit_reasons}`);
+          console.log(`  surgery_diagnoses: ${counts.surgery_diagnoses}`);
+          console.log(`  body_parts: ${counts.body_parts}`);
+          console.log(`  surgery_techniques: ${counts.surgery_techniques}`);
 
-          // Assertion 3: Reports must be generated
-          expect(result.reportPaths).toBeDefined();
-          if (result.reportPaths) {
-            expect(fs.existsSync(result.reportPaths.jsonPath)).toBe(true);
-            expect(fs.existsSync(result.reportPaths.mdPath)).toBe(true);
-            console.log(`[SYNTHETIC VOLUME TEST] ✓ Reports generated successfully`);
+          // Verify that data was actually inserted (non-zero counts for main tables)
+          expect(counts.patients).toBeGreaterThan(0);
+          expect(counts.appointments).toBeGreaterThan(0);
+          expect(counts.clinical_records).toBeGreaterThan(0);
+          expect(counts.surgeries).toBeGreaterThan(0);
+          expect(counts.cash_entries).toBeGreaterThan(0);
 
-            // Assertion 4: Report JSON is valid
-            const jsonContent = fs.readFileSync(result.reportPaths.jsonPath, 'utf-8');
-            expect(() => JSON.parse(jsonContent)).not.toThrow();
+          // Verify reference tables have data
+          expect(counts.doctors).toBeGreaterThan(0);
+          expect(counts.health_insurances).toBeGreaterThan(0);
+          expect(counts.visit_reasons).toBeGreaterThan(0);
 
-            const reportJson = JSON.parse(jsonContent);
-            expect(reportJson).toHaveProperty('summaryByTable');
-            expect(reportJson).toHaveProperty('excludedTables');
-            expect(reportJson).toHaveProperty('patientMatching');
-            expect(reportJson).toHaveProperty('errors');
-            expect(reportJson).toHaveProperty('warnings');
+          // Verify lookup tables were populated from data
+          expect(counts.surgery_diagnoses).toBeGreaterThan(0);
+          expect(counts.body_parts).toBeGreaterThan(0);
+          expect(counts.surgery_techniques).toBeGreaterThan(0);
 
-            // Assertion 5: Report Markdown is well-formed
-            const mdContent = fs.readFileSync(result.reportPaths.mdPath, 'utf-8');
-            expect(mdContent.length).toBeGreaterThan(0);
-            expect(mdContent).toContain('# Migration Report');
-            expect(mdContent).toContain('##'); // Section headers
+          console.log('[SYNTHETIC VOLUME TEST] ✓ All tables populated with data');
+
+          // Assertion 7: Verify migration_log has records (idempotency support)
+          const logResult = await pool.query<{ count: bigint }>('SELECT COUNT(*) as count FROM migration_log');
+          const logCount = Number(logResult.rows[0].count);
+          expect(logCount).toBeGreaterThan(0);
+          console.log(`[SYNTHETIC VOLUME TEST] ✓ migration_log has ${logCount} records (idempotency enabled)`);
+
+          // Assertion 8: Verify report summary contains correct table names
+          if (result.report?.summaryByTable) {
+            const reportedTables = Object.keys(result.report.summaryByTable);
+            expect(reportedTables).toContain('fichas');
+            expect(reportedTables).toContain('inst_turnos');
+            expect(reportedTables).toContain('cirugias');
+            expect(reportedTables).toContain('historiaclinica');
+            expect(reportedTables).toContain('caja');
+            console.log(`[SYNTHETIC VOLUME TEST] ✓ Report contains all migrated source tables`);
           }
 
-          // Assertion 6: Verify row counts in database match expected values
-          const pool = new Pool({ connectionString: TEST_DATABASE_URL });
-          try {
-            const queries = {
-              patients: 'SELECT COUNT(*) as count FROM patients',
-              appointments: 'SELECT COUNT(*) as count FROM appointments',
-              clinical_records: 'SELECT COUNT(*) as count FROM clinical_records',
-              surgeries: 'SELECT COUNT(*) as count FROM surgeries',
-              cash_entries: 'SELECT COUNT(*) as count FROM cash_entries',
-              doctors: 'SELECT COUNT(*) as count FROM doctors',
-              health_insurances: 'SELECT COUNT(*) as count FROM health_insurances',
-              visit_reasons: 'SELECT COUNT(*) as count FROM visit_reasons',
-              surgery_diagnoses: 'SELECT COUNT(*) as count FROM surgery_diagnoses',
-              body_parts: 'SELECT COUNT(*) as count FROM body_parts',
-              surgery_techniques: 'SELECT COUNT(*) as count FROM surgery_techniques',
-            };
-
-            const counts: Record<string, number> = {};
-            for (const [table, query] of Object.entries(queries)) {
-              const result = await pool.query<{ count: bigint }>(query);
-              counts[table] = Number(result.rows[0].count);
-            }
-
-            console.log('[SYNTHETIC VOLUME TEST] Final row counts:');
-            console.log(`  patients: ${counts.patients}`);
-            console.log(`  appointments: ${counts.appointments}`);
-            console.log(`  clinical_records: ${counts.clinical_records}`);
-            console.log(`  surgeries: ${counts.surgeries}`);
-            console.log(`  cash_entries: ${counts.cash_entries}`);
-            console.log(`  doctors: ${counts.doctors}`);
-            console.log(`  health_insurances: ${counts.health_insurances}`);
-            console.log(`  visit_reasons: ${counts.visit_reasons}`);
-            console.log(`  surgery_diagnoses: ${counts.surgery_diagnoses}`);
-            console.log(`  body_parts: ${counts.body_parts}`);
-            console.log(`  surgery_techniques: ${counts.surgery_techniques}`);
-
-            // Verify that data was actually inserted (non-zero counts for main tables)
-            expect(counts.patients).toBeGreaterThan(0);
-            expect(counts.appointments).toBeGreaterThan(0);
-            expect(counts.clinical_records).toBeGreaterThan(0);
-            expect(counts.surgeries).toBeGreaterThan(0);
-            expect(counts.cash_entries).toBeGreaterThan(0);
-
-            // Verify reference tables have data
-            expect(counts.doctors).toBeGreaterThan(0);
-            expect(counts.health_insurances).toBeGreaterThan(0);
-            expect(counts.visit_reasons).toBeGreaterThan(0);
-
-            // Verify lookup tables were populated from data
-            expect(counts.surgery_diagnoses).toBeGreaterThan(0);
-            expect(counts.body_parts).toBeGreaterThan(0);
-            expect(counts.surgery_techniques).toBeGreaterThan(0);
-
-            console.log('[SYNTHETIC VOLUME TEST] ✓ All tables populated with data');
-
-            // Assertion 7: Verify migration_log has records (idempotency support)
-            const logResult = await pool.query<{ count: bigint }>(
-              'SELECT COUNT(*) as count FROM migration_log'
-            );
-            const logCount = Number(logResult.rows[0].count);
-            expect(logCount).toBeGreaterThan(0);
-            console.log(
-              `[SYNTHETIC VOLUME TEST] ✓ migration_log has ${logCount} records (idempotency enabled)`
-            );
-
-            // Assertion 8: Verify report summary contains correct table names
-            if (result.report?.summaryByTable) {
-              const reportedTables = Object.keys(result.report.summaryByTable);
-              expect(reportedTables).toContain('fichas');
-              expect(reportedTables).toContain('inst_turnos');
-              expect(reportedTables).toContain('cirugias');
-              expect(reportedTables).toContain('historiaclinica');
-              expect(reportedTables).toContain('caja');
-              console.log(
-                `[SYNTHETIC VOLUME TEST] ✓ Report contains all migrated source tables`
-              );
-            }
-
-            console.log(
-              '[SYNTHETIC VOLUME TEST] ✓✓✓ Synthetic volume test PASSED - 10x volume handled successfully'
-            );
-          } finally {
-            await pool.end();
-          }
+          console.log('[SYNTHETIC VOLUME TEST] ✓✓✓ Synthetic volume test PASSED - 10x volume handled successfully');
         } finally {
-          // Cleanup synthetic dump file
-          if (fs.existsSync(syntheticDumpPath)) {
-            fs.unlinkSync(syntheticDumpPath);
-          }
-
-          // Cleanup report directory
-          try {
-            const files = fs.readdirSync(reportDir);
-            for (const file of files) {
-              fs.unlinkSync(path.join(reportDir, file));
-            }
-            fs.rmdirSync(reportDir);
-          } catch (err) {
-            console.warn('[SYNTHETIC VOLUME TEST] Report cleanup failed');
-          }
+          await pool.end();
         }
-      },
-    );
+      } finally {
+        // Cleanup synthetic dump file
+        if (fs.existsSync(syntheticDumpPath)) {
+          fs.unlinkSync(syntheticDumpPath);
+        }
+
+        // Cleanup report directory
+        try {
+          const files = fs.readdirSync(reportDir);
+          for (const file of files) {
+            fs.unlinkSync(path.join(reportDir, file));
+          }
+          fs.rmdirSync(reportDir);
+        } catch (err) {
+          console.warn('[SYNTHETIC VOLUME TEST] Report cleanup failed');
+        }
+      }
+    });
   });
 });

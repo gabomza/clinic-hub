@@ -27,8 +27,7 @@ describe('Database Integration Tests', () => {
 
   beforeAll(async () => {
     const connectionString =
-      process.env.TEST_DATABASE_URL ||
-      'postgresql://postgres:postgres@localhost:5432/migration_test';
+      process.env.TEST_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/migration_test';
 
     postgresClient = createPostgresClient({
       connectionString,
@@ -51,7 +50,6 @@ describe('Database Integration Tests', () => {
   });
 
   describe('Full workflow: record and retrieve', () => {
-
     it('should complete a full record-retrieve cycle', async () => {
       // Record a migration
       const entry = {
@@ -111,10 +109,7 @@ describe('Database Integration Tests', () => {
       });
 
       // Verify both are committed
-      const result = await pool.query(
-        'SELECT COUNT(*) FROM migration_log WHERE source_table = $1',
-        ['fichas'],
-      );
+      const result = await pool.query('SELECT COUNT(*) FROM migration_log WHERE source_table = $1', ['fichas']);
       expect(parseInt((result.rows[0] as any).count)).toBe(2);
     });
 
@@ -140,10 +135,7 @@ describe('Database Integration Tests', () => {
       }
 
       // Verify entry was rolled back
-      const result = await pool.query(
-        'SELECT COUNT(*) FROM migration_log WHERE source_table = $1',
-        ['cirugias'],
-      );
+      const result = await pool.query('SELECT COUNT(*) FROM migration_log WHERE source_table = $1', ['cirugias']);
       expect(parseInt((result.rows[0] as any).count)).toBe(0);
     });
   });
@@ -165,18 +157,10 @@ describe('Database Integration Tests', () => {
       `);
 
       // Insert batch of rows
-      const rows = Array.from({ length: 100 }, (_, i) => [
-        `src-${i}`,
-        1000 + i,
-      ]);
+      const rows = Array.from({ length: 100 }, (_, i) => [`src-${i}`, 1000 + i]);
 
       await postgresClient.withTransaction(async (txClient) => {
-        await postgresClient.insertBatch(
-          txClient,
-          'test_batch',
-          ['source_id', 'value'],
-          rows,
-        );
+        await postgresClient.insertBatch(txClient, 'test_batch', ['source_id', 'value'], rows);
       });
 
       // Verify all rows were inserted
@@ -189,7 +173,6 @@ describe('Database Integration Tests', () => {
   });
 
   describe('Reset operations', () => {
-
     it('should support log-only reset', async () => {
       // Insert entries
       for (let i = 0; i < 5; i++) {
@@ -208,9 +191,7 @@ describe('Database Integration Tests', () => {
       await store.reset(pool, 'log-only');
 
       // Verify log is empty
-      const result = await pool.query(
-        'SELECT COUNT(*) FROM migration_log',
-      );
+      const result = await pool.query('SELECT COUNT(*) FROM migration_log');
       expect(parseInt((result.rows[0] as any).count)).toBe(0);
     });
 
@@ -234,9 +215,7 @@ describe('Database Integration Tests', () => {
       await store.reset(pool, 'full');
 
       // Verify log is empty
-      const result = await pool.query(
-        'SELECT COUNT(*) FROM migration_log',
-      );
+      const result = await pool.query('SELECT COUNT(*) FROM migration_log');
       expect(parseInt((result.rows[0] as any).count)).toBe(0);
     });
   });
@@ -261,11 +240,7 @@ describe('Database Integration Tests', () => {
       await store.record(pool, entry);
 
       // Second run (re-execution): check if already processed
-      const existing = await store.findExisting(
-        pool,
-        'fichas',
-        'idempotent-test-1',
-      );
+      const existing = await store.findExisting(pool, 'fichas', 'idempotent-test-1');
 
       expect(existing).not.toBeNull();
       expect(existing?.targetId).toBe('600');
@@ -287,11 +262,7 @@ describe('Database Integration Tests', () => {
       await store.record(pool, entry);
 
       // Later: verify hash can be compared
-      const existing = await store.findExisting(
-        pool,
-        'fichas',
-        'hash-change-test',
-      );
+      const existing = await store.findExisting(pool, 'fichas', 'hash-change-test');
 
       const hash2 = 'source-payload-hash-v2-changed';
       expect(existing?.payloadHash).toBe(hash1);
@@ -318,11 +289,7 @@ describe('Database Integration Tests', () => {
 
       await store.record(pool, entry);
 
-      const retrieved = await store.findExisting(
-        pool,
-        'historiaclinica',
-        'hc-excluded-1',
-      );
+      const retrieved = await store.findExisting(pool, 'historiaclinica', 'hc-excluded-1');
       expect(retrieved?.targetId).toBeNull();
       expect(retrieved?.status).toBe('excluded');
     });
@@ -342,11 +309,7 @@ describe('Database Integration Tests', () => {
 
       await store.record(pool, entry);
 
-      const retrieved = await store.findExisting(
-        pool,
-        'historiaclinica',
-        compositePk,
-      );
+      const retrieved = await store.findExisting(pool, 'historiaclinica', compositePk);
       expect(retrieved).not.toBeNull();
       expect(retrieved?.sourcePk).toBe(compositePk);
     });
@@ -366,11 +329,7 @@ describe('Database Integration Tests', () => {
 
       await store.record(pool, entry);
 
-      const retrieved = await store.findExisting(
-        pool,
-        'test_hash',
-        'hash-test-1',
-      );
+      const retrieved = await store.findExisting(pool, 'test_hash', 'hash-test-1');
       expect(retrieved?.payloadHash).toBe(largeHash);
     });
   });

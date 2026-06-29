@@ -82,56 +82,51 @@ function createMockMigrationLogStore() {
 /**
  * Mock PatientMatcher
  */
-function createMockPatientMatcher(
-  autoLinkMap?: Map<string, number>,
-  manualReviewPatterns?: string[],
-) {
+function createMockPatientMatcher(autoLinkMap?: Map<string, number>, manualReviewPatterns?: string[]) {
   const autoLinkMap_ = autoLinkMap || new Map<string, number>();
   const manualReviewPatterns_ = manualReviewPatterns || [];
 
   return {
-    match: vi.fn(
-      (input: { lastName?: string; firstName?: string }, mode: string, pool: PatientCandidate[]) => {
-        const lastName = (input.lastName || '').trim();
+    match: vi.fn((input: { lastName?: string; firstName?: string }, mode: string, pool: PatientCandidate[]) => {
+      const lastName = (input.lastName || '').trim();
 
-        // Empty input → no_match
-        if (!lastName) {
-          return {
-            outcome: 'no_match',
-            reason: 'Empty input',
-          } as MatchOutcome;
-        }
-
-        // Check if it's in manual review patterns
-        if (manualReviewPatterns_.some((pattern) => lastName.includes(pattern))) {
-          return {
-            outcome: 'manual_review',
-            candidates: [
-              { id: 10, score: 0.87 },
-              { id: 11, score: 0.85 },
-            ],
-            reason: 'Multiple candidates',
-          } as MatchOutcome;
-        }
-
-        // Check auto-link map
-        const patientId = autoLinkMap_.get(lastName);
-        if (patientId) {
-          return {
-            outcome: 'auto_linked',
-            candidateId: patientId,
-            score: 0.95,
-            reason: 'Matched',
-          } as MatchOutcome;
-        }
-
-        // Default to no_match
+      // Empty input → no_match
+      if (!lastName) {
         return {
           outcome: 'no_match',
-          reason: 'No match found',
+          reason: 'Empty input',
         } as MatchOutcome;
-      },
-    ),
+      }
+
+      // Check if it's in manual review patterns
+      if (manualReviewPatterns_.some((pattern) => lastName.includes(pattern))) {
+        return {
+          outcome: 'manual_review',
+          candidates: [
+            { id: 10, score: 0.87 },
+            { id: 11, score: 0.85 },
+          ],
+          reason: 'Multiple candidates',
+        } as MatchOutcome;
+      }
+
+      // Check auto-link map
+      const patientId = autoLinkMap_.get(lastName);
+      if (patientId) {
+        return {
+          outcome: 'auto_linked',
+          candidateId: patientId,
+          score: 0.95,
+          reason: 'Matched',
+        } as MatchOutcome;
+      }
+
+      // Default to no_match
+      return {
+        outcome: 'no_match',
+        reason: 'No match found',
+      } as MatchOutcome;
+    }),
 
     detectDuplicatesInPool: vi.fn(async () => []),
   } as any as PatientMatcher;
@@ -358,9 +353,7 @@ describe('AppointmentMigrator', () => {
         );
 
         expect(result.migrated).toBe(1);
-        expect(result.warnings.some((w) => w.warning.includes('Unknown appointment status'))).toBe(
-          false,
-        );
+        expect(result.warnings.some((w) => w.warning.includes('Unknown appointment status'))).toBe(false);
       }
     });
 
@@ -385,9 +378,7 @@ describe('AppointmentMigrator', () => {
       );
 
       expect(result.migrated).toBe(1);
-      expect(result.warnings.some((w) => w.warning.includes('Unknown appointment status: 99'))).toBe(
-        true,
-      );
+      expect(result.warnings.some((w) => w.warning.includes('Unknown appointment status: 99'))).toBe(true);
     });
 
     it('should map NULL status to DEFAULT_APPOINTMENT_STATUS without warning', async () => {
@@ -602,13 +593,7 @@ describe('AppointmentMigrator', () => {
         },
       ];
 
-      await migrator.migrate(
-        rows,
-        { scheduleIds, patientPool: [] },
-        mockMatcher_,
-        mockClient,
-        mockLogStore,
-      );
+      await migrator.migrate(rows, { scheduleIds, patientPool: [] }, mockMatcher_, mockClient, mockLogStore);
 
       // Verify that match was called with 'last_name_only' mode
       const matchCalls = (mockMatcher_.match as any).mock.calls;
@@ -665,13 +650,7 @@ describe('AppointmentMigrator', () => {
         },
       ];
 
-      await migrator.migrate(
-        rows,
-        { scheduleIds, patientPool: [] },
-        mockMatcher_,
-        mockClient,
-        mockLogStore,
-      );
+      await migrator.migrate(rows, { scheduleIds, patientPool: [] }, mockMatcher_, mockClient, mockLogStore);
 
       const recordCalls = (mockLogStore.record as any).mock.calls;
       expect(recordCalls.length).toBeGreaterThan(0);

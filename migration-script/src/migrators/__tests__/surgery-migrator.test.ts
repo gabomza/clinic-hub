@@ -105,10 +105,13 @@ function createMockPostgresClient() {
           nextId[table]++;
 
           const columnName =
-            table === 'surgery_diagnoses' ? 'diagnosis' :
-            table === 'body_parts' ? 'body_part' :
-            table === 'surgery_techniques' ? 'technique' :
-            'name';
+            table === 'surgery_diagnoses'
+              ? 'diagnosis'
+              : table === 'body_parts'
+                ? 'body_part'
+                : table === 'surgery_techniques'
+                  ? 'technique'
+                  : 'name';
 
           tableData[table].push({
             id,
@@ -675,9 +678,7 @@ describe('SurgeryMigrator - populateLookups', () => {
       expect(result1.inserted).toBe(result2.inserted);
       expect(result1.reused).toBe(result2.reused);
       expect(result1.errors).toHaveLength(result2.errors.length);
-      expect(result1.lookupIdMaps.diagnoses.size).toBe(
-        result2.lookupIdMaps.diagnoses.size,
-      );
+      expect(result1.lookupIdMaps.diagnoses.size).toBe(result2.lookupIdMaps.diagnoses.size);
     });
   });
 
@@ -866,14 +867,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.errors).toHaveLength(0);
@@ -1035,14 +1029,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.errors).toHaveLength(0);
@@ -1072,14 +1059,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.errors).toHaveLength(0);
@@ -1103,14 +1083,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.warnings.length).toBeGreaterThan(0);
@@ -1135,14 +1108,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.warnings.length).toBeGreaterThan(0);
@@ -1171,14 +1137,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       // Verify INSERT into surgery_applied_techniques was called with order_index = 1
@@ -1209,14 +1168,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       // Should have 2 technique insertions
@@ -1249,14 +1201,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       // Should have 2 technique insertions (order_index 1 and 3)
@@ -1286,14 +1231,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       // No technique insertions
@@ -1323,14 +1261,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.warnings.length).toBeGreaterThan(0);
@@ -1358,14 +1289,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.errors).toHaveLength(0);
@@ -1399,14 +1323,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.warnings.length).toBeGreaterThan(0);
@@ -1437,14 +1354,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.warnings.length).toBeGreaterThan(0);
@@ -1464,14 +1374,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(1);
       expect(result.warnings.length).toBeGreaterThan(0);
@@ -1509,14 +1412,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       expect(result.migrated).toBe(0);
       // Patient matcher should not be called
@@ -1567,14 +1463,7 @@ describe('SurgeryMigrator - migrate (Task 10)', () => {
         },
       ];
 
-      const result = await migrator.migrate(
-        rows,
-        lookups,
-        patientPool,
-        mockPatientMatcher,
-        mockClient,
-        mockLogStore,
-      );
+      const result = await migrator.migrate(rows, lookups, patientPool, mockPatientMatcher, mockClient, mockLogStore);
 
       // First row should error, second should succeed (after retry)
       expect(result.migrated).toBeGreaterThan(0);

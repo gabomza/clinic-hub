@@ -18,36 +18,132 @@
 
 // Spanish names and surnames commonly found in Argentina
 const SURNAMES = [
-  'García', 'López', 'González', 'Rodríguez', 'Martínez',
-  'Pérez', 'Sánchez', 'Ramírez', 'Torres', 'Flores',
-  'Rivera', 'Cruz', 'Morales', 'Gutierrez', 'Ortiz',
-  'Jiménez', 'Méndez', 'Vázquez', 'Ruiz', 'Castro',
-  'Silva', 'Vargas', 'Reyes', 'Díaz', 'Acosta',
-  'Álvarez', 'Campos', 'Navarro', 'Ramos', 'Fuentes',
-  'Córdoba', 'Fernández', 'Herrera', 'Iglesias', 'Jara',
-  'Knobel', 'Lara', 'Medina', 'Nichols', 'Ortega',
-  'Páez', 'Quintana', 'Rossi', 'Saavedra', 'Tejada',
-  'Ureta', 'Vega', 'Walthery', 'Yáñez', 'Zamora',
-  'Amadei', 'Benedetti', 'Cappello', 'D\'Angelo', 'Esposito',
-  'Fontana', 'Garibaldi', 'Hoffmann', 'Innella', 'Jarpa',
+  'García',
+  'López',
+  'González',
+  'Rodríguez',
+  'Martínez',
+  'Pérez',
+  'Sánchez',
+  'Ramírez',
+  'Torres',
+  'Flores',
+  'Rivera',
+  'Cruz',
+  'Morales',
+  'Gutierrez',
+  'Ortiz',
+  'Jiménez',
+  'Méndez',
+  'Vázquez',
+  'Ruiz',
+  'Castro',
+  'Silva',
+  'Vargas',
+  'Reyes',
+  'Díaz',
+  'Acosta',
+  'Álvarez',
+  'Campos',
+  'Navarro',
+  'Ramos',
+  'Fuentes',
+  'Córdoba',
+  'Fernández',
+  'Herrera',
+  'Iglesias',
+  'Jara',
+  'Knobel',
+  'Lara',
+  'Medina',
+  'Nichols',
+  'Ortega',
+  'Páez',
+  'Quintana',
+  'Rossi',
+  'Saavedra',
+  'Tejada',
+  'Ureta',
+  'Vega',
+  'Walthery',
+  'Yáñez',
+  'Zamora',
+  'Amadei',
+  'Benedetti',
+  'Cappello',
+  "D'Angelo",
+  'Esposito',
+  'Fontana',
+  'Garibaldi',
+  'Hoffmann',
+  'Innella',
+  'Jarpa',
 ];
 
 const FIRST_NAMES_MALE = [
-  'Juan', 'Carlos', 'José', 'Luis', 'Miguel',
-  'Antonio', 'Francisco', 'Pedro', 'Vicente', 'Manuel',
-  'Sergio', 'Roberto', 'Ricardo', 'Eduardo', 'Fernando',
-  'Daniel', 'Héctor', 'Andrés', 'Raúl', 'Marcos',
-  'Gonzalo', 'Rodrigo', 'Javier', 'Pablo', 'Alejandro',
+  'Juan',
+  'Carlos',
+  'José',
+  'Luis',
+  'Miguel',
+  'Antonio',
+  'Francisco',
+  'Pedro',
+  'Vicente',
+  'Manuel',
+  'Sergio',
+  'Roberto',
+  'Ricardo',
+  'Eduardo',
+  'Fernando',
+  'Daniel',
+  'Héctor',
+  'Andrés',
+  'Raúl',
+  'Marcos',
+  'Gonzalo',
+  'Rodrigo',
+  'Javier',
+  'Pablo',
+  'Alejandro',
 ];
 
 const FIRST_NAMES_FEMALE = [
-  'María', 'Rosa', 'Carmen', 'Juana', 'Magdalena',
-  'Teresa', 'Francisca', 'Petronila', 'Encarnación', 'Soledad',
-  'Esperanza', 'Paz', 'Amparo', 'Delicias', 'Consuelo',
-  'Ángela', 'Elvira', 'Gloria', 'Josefina', 'Margarita',
-  'Antonia', 'Benita', 'Catalina', 'Dolores', 'Enriqueta',
-  'Filomena', 'Georgina', 'Hilaria', 'Irene', 'Juana',
-  'Kangenia', 'Lupita', 'Manuela', 'Natalia', 'Olivia',
+  'María',
+  'Rosa',
+  'Carmen',
+  'Juana',
+  'Magdalena',
+  'Teresa',
+  'Francisca',
+  'Petronila',
+  'Encarnación',
+  'Soledad',
+  'Esperanza',
+  'Paz',
+  'Amparo',
+  'Delicias',
+  'Consuelo',
+  'Ángela',
+  'Elvira',
+  'Gloria',
+  'Josefina',
+  'Margarita',
+  'Antonia',
+  'Benita',
+  'Catalina',
+  'Dolores',
+  'Enriqueta',
+  'Filomena',
+  'Georgina',
+  'Hilaria',
+  'Irene',
+  'Juana',
+  'Kangenia',
+  'Lupita',
+  'Manuela',
+  'Natalia',
+  'Olivia',
 ];
 
 const ADDRESSES_PARTS = [
@@ -62,24 +158,36 @@ const ADDRESSES_PARTS = [
   'Calle Garibaldi',
   'Avenida Belgrano',
   'Calle Tucumán',
-  'Avenida O\'Higgins',
+  "Avenida O'Higgins",
   'Calle Maipú',
   'Avenida Sarmiento',
   'Calle España',
 ];
 
 const DEPARTMENTS = [
-  'CAPITAL', 'GODOY CRUZ', 'GUAYMALLEN', 'LAS HERAS',
-  'DORREGO', 'LUJAN DE CUYO', 'MAIPÚ', 'RIVADAVIA',
+  'CAPITAL',
+  'GODOY CRUZ',
+  'GUAYMALLEN',
+  'LAS HERAS',
+  'DORREGO',
+  'LUJAN DE CUYO',
+  'MAIPÚ',
+  'RIVADAVIA',
 ];
 
-const PROVINCES = [
-  'MENDOZA', 'BUENOS AIRES', 'CÓRDOBA', 'SANTA FE',
-];
+const PROVINCES = ['MENDOZA', 'BUENOS AIRES', 'CÓRDOBA', 'SANTA FE'];
 
 const HEALTH_INSURANCES = [
-  'OSEP', 'OSDE', 'CIMESA', 'EMSE', 'IOS',
-  'PARTICULAR', 'SANS', 'MEDIFÉ', 'ACIBER', 'COSIFER',
+  'OSEP',
+  'OSDE',
+  'CIMESA',
+  'EMSE',
+  'IOS',
+  'PARTICULAR',
+  'SANS',
+  'MEDIFÉ',
+  'ACIBER',
+  'COSIFER',
 ];
 
 const VISIT_REASONS = [
@@ -90,15 +198,7 @@ const VISIT_REASONS = [
   'Estudio complementario',
 ];
 
-const DIAGNOSES = [
-  'I.V.S.',
-  'I.V.P.C.',
-  'VARICES',
-  'ÚLCERA VARICOSA',
-  'EDEMA',
-  'LINFEDEMA',
-  'TELANGIECTASIA',
-];
+const DIAGNOSES = ['I.V.S.', 'I.V.P.C.', 'VARICES', 'ÚLCERA VARICOSA', 'EDEMA', 'LINFEDEMA', 'TELANGIECTASIA'];
 
 const BODY_PARTS = [
   'M.I.D.',
@@ -111,25 +211,9 @@ const BODY_PARTS = [
   'BRAZO IZQUIERDO',
 ];
 
-const TECHNIQUES = [
-  'S.I.',
-  'EMI',
-  'REEX.CAY',
-  'SHERMAN',
-  'LINTON',
-  'COCKETT',
-  'PHLEBOEXTRACCIÓN',
-  'ESCLEROTERAPIA',
-];
+const TECHNIQUES = ['S.I.', 'EMI', 'REEX.CAY', 'SHERMAN', 'LINTON', 'COCKETT', 'PHLEBOEXTRACCIÓN', 'ESCLEROTERAPIA'];
 
-const SURGICAL_OUTCOMES = [
-  'BUENA',
-  'ACEPTABLE',
-  'COMPLICACIÓN',
-  'NECROSIS',
-  'INFECCIÓN',
-  'RECURRENCIA',
-];
+const SURGICAL_OUTCOMES = ['BUENA', 'ACEPTABLE', 'COMPLICACIÓN', 'NECROSIS', 'INFECCIÓN', 'RECURRENCIA'];
 
 const CONCEPT_DESCRIPTIONS = [
   'saldo anterior',
@@ -166,11 +250,7 @@ function formatCurrency(amount: number): string {
 
 // Helper: Escape SQL string values
 function escapeSqlString(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r');
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 }
 
 /**
@@ -183,18 +263,12 @@ function generateFichasData(count: number): string {
   for (let i = 1; i <= count; i++) {
     const isFemale = Math.random() > 0.5;
     const surname = escapeSqlString(randomElement(SURNAMES));
-    const firstName = escapeSqlString(
-      isFemale
-        ? randomElement(FIRST_NAMES_FEMALE)
-        : randomElement(FIRST_NAMES_MALE)
-    );
+    const firstName = escapeSqlString(isFemale ? randomElement(FIRST_NAMES_FEMALE) : randomElement(FIRST_NAMES_MALE));
 
     const idFicha = i;
     const tipoDoc = Math.random() > 0.3 ? 'DN' : '';
     const documento = tipoDoc ? String(randomInt(1000000, 50000000)) : '';
-    const address = escapeSqlString(
-      `${randomElement(ADDRESSES_PARTS)} ${randomInt(100, 5000)}`
-    );
+    const address = escapeSqlString(`${randomElement(ADDRESSES_PARTS)} ${randomInt(100, 5000)}`);
     const department = randomElement(DEPARTMENTS);
     const province = randomElement(PROVINCES);
     const birthDate = randomDate(1930, 1980);
@@ -213,17 +287,15 @@ function generateFichasData(count: number): string {
     const spouseWorkType = '';
     const firstVisit = Math.random() > 0.3 ? randomDate(1990, 2000) : '0000-00-00';
     const lastVisit = Math.random() > 0.2 ? randomDate(2000, 2023) : '0000-00-00';
-    const diagnosis = escapeSqlString(
-      Math.random() > 0.4 ? randomElement(DIAGNOSES) : 'NO DEFINIDO'
-    );
+    const diagnosis = escapeSqlString(Math.random() > 0.4 ? randomElement(DIAGNOSES) : 'NO DEFINIDO');
     const visitFee = Math.random() > 0.5 ? String(randomInt(50, 500)) : '0';
 
     rows.push(
       `(${idFicha},'${tipoDoc}','${documento}','${surname}','${firstName}',` +
-      `'${address}','${department}','${province}','${birthDate}','${gender}',` +
-      `'${healthInsurance}','${insuranceNumber}','${phone}','${email}','${postalCode}',` +
-      `'${maritalStatus}','${doctorId}','${source}','${workPlace}','${workType}',` +
-      `'${spouseWork}','${spouseWorkType}','${firstVisit}','${lastVisit}','${diagnosis}','${visitFee}')`
+        `'${address}','${department}','${province}','${birthDate}','${gender}',` +
+        `'${healthInsurance}','${insuranceNumber}','${phone}','${email}','${postalCode}',` +
+        `'${maritalStatus}','${doctorId}','${source}','${workPlace}','${workType}',` +
+        `'${spouseWork}','${spouseWorkType}','${firstVisit}','${lastVisit}','${diagnosis}','${visitFee}')`,
     );
   }
 
@@ -255,7 +327,7 @@ function generateTurnosData(count: number): string {
 
     rows.push(
       `(${i},'${surname}',${doctorId},${visitReasonId},'${date}',` +
-      `${scheduleId},${insuranceId},'${phone}',${status})`
+        `${scheduleId},${insuranceId},'${phone}',${status})`,
     );
   }
 
@@ -278,50 +350,30 @@ function generateCirugiasData(count: number): string {
   for (let i = 1; i <= count; i++) {
     const isFemale = Math.random() > 0.5;
     const surname = escapeSqlString(randomElement(SURNAMES));
-    const firstName = escapeSqlString(
-      isFemale
-        ? randomElement(FIRST_NAMES_FEMALE)
-        : randomElement(FIRST_NAMES_MALE)
-    );
+    const firstName = escapeSqlString(isFemale ? randomElement(FIRST_NAMES_FEMALE) : randomElement(FIRST_NAMES_MALE));
 
     const age = randomInt(30, 85);
-    const address = escapeSqlString(
-      `${randomElement(ADDRESSES_PARTS)} ${randomInt(100, 5000)}`
-    );
+    const address = escapeSqlString(`${randomElement(ADDRESSES_PARTS)} ${randomInt(100, 5000)}`);
     const date = randomDate(1980, 2023);
-    const diagnosis = escapeSqlString(
-      Math.random() > 0.2 ? randomElement(DIAGNOSES) : ''
-    );
-    const bodyPart = escapeSqlString(
-      Math.random() > 0.2 ? randomElement(BODY_PARTS) : ''
-    );
-    const technique1 = escapeSqlString(
-      Math.random() > 0.3 ? randomElement(TECHNIQUES) : ''
-    );
-    const technique2 = escapeSqlString(
-      Math.random() > 0.5 ? randomElement(TECHNIQUES) : ''
-    );
-    const technique3 = escapeSqlString(
-      Math.random() > 0.6 ? randomElement(TECHNIQUES) : ''
-    );
+    const diagnosis = escapeSqlString(Math.random() > 0.2 ? randomElement(DIAGNOSES) : '');
+    const bodyPart = escapeSqlString(Math.random() > 0.2 ? randomElement(BODY_PARTS) : '');
+    const technique1 = escapeSqlString(Math.random() > 0.3 ? randomElement(TECHNIQUES) : '');
+    const technique2 = escapeSqlString(Math.random() > 0.5 ? randomElement(TECHNIQUES) : '');
+    const technique3 = escapeSqlString(Math.random() > 0.6 ? randomElement(TECHNIQUES) : '');
     const evolution = escapeSqlString(
-      Math.random() > 0.2
-        ? `${randomElement(SURGICAL_OUTCOMES)} ${randomInt(85, 95)}`
-        : ''
+      Math.random() > 0.2 ? `${randomElement(SURGICAL_OUTCOMES)} ${randomInt(85, 95)}` : '',
     );
 
     rows.push(
       `(${i},'${surname}','${firstName}',${age},'${address}','${date}',` +
-      `'${diagnosis}','${bodyPart}','${technique1}','${technique2}','${technique3}','${evolution}')`
+        `'${diagnosis}','${bodyPart}','${technique1}','${technique2}','${technique3}','${evolution}')`,
     );
   }
 
   // Split into chunks of 50 rows per INSERT
   const chunks: string[] = [];
   for (let i = 0; i < rows.length; i += 50) {
-    chunks.push(
-      `INSERT INTO cirugias VALUES ${rows.slice(i, i + 50).join(', ')};`
-    );
+    chunks.push(`INSERT INTO cirugias VALUES ${rows.slice(i, i + 50).join(', ')};`);
   }
 
   return chunks.join('\n');
@@ -359,11 +411,7 @@ function generateHistoriaclinicaData(count: number): string {
   // Split into chunks of 50 rows per INSERT
   const chunks: string[] = [];
   for (let i = 0; i < rows.length; i += 50) {
-    chunks.push(
-      `INSERT INTO historiaclinica VALUES ${rows
-        .slice(i, i + 50)
-        .join(', ')};`
-    );
+    chunks.push(`INSERT INTO historiaclinica VALUES ${rows.slice(i, i + 50).join(', ')};`);
   }
 
   return chunks.join('\n');
@@ -458,7 +506,8 @@ export function generateSyntheticMysqlDump(config?: {
         'Dra. Flores',
       ];
       return `(${i + 1},'${names[i]}')`;
-    }).join(',\n')
+    })
+      .join(',\n')
       .concat(';'),
     '',
     'CREATE TABLE `inst_obrasoc` (',
@@ -495,7 +544,8 @@ export function generateSyntheticMysqlDump(config?: {
       const minute = String((i % 2) * 30).padStart(2, '0');
       const estado = Math.floor(i % 3);
       return `(${i + 1},'${hour}:${minute}:00',${estado})`;
-    }).join(',\n')
+    })
+      .join(',\n')
       .concat(';'),
     '',
     '-- Synthetic Data (10x volume)',
@@ -509,7 +559,7 @@ export function generateSyntheticMysqlDump(config?: {
     '  `domicilio` varchar(255),',
     '  `departamento` varchar(60),',
     '  `provincia` varchar(60),',
-    '  `fechaNac` date NOT NULL DEFAULT \'0000-00-00\',',
+    "  `fechaNac` date NOT NULL DEFAULT '0000-00-00',",
     '  `sexo` char(1),',
     '  `obraSocial` varchar(60),',
     '  `nroObraSocial` varchar(60),',

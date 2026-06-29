@@ -119,9 +119,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: 'Dr. Juan Perez' },
-      ];
+      const rows: DoctorRow[] = [{ Profesional_id: 1, Profesional: 'Dr. Juan Perez' }];
 
       const result = await migrator.migrateDoctors(rows, client as any, logStore as any);
 
@@ -136,16 +134,12 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const logStore = createMockMigrationLogStore();
 
       // First insert
-      const rows1: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: 'Dr. Juan Perez' },
-      ];
+      const rows1: DoctorRow[] = [{ Profesional_id: 1, Profesional: 'Dr. Juan Perez' }];
       const result1 = await migrator.migrateDoctors(rows1, client as any, logStore as any);
       expect(result1.inserted).toBe(1);
 
       // Try to migrate the same doctor with different case
-      const rows2: DoctorRow[] = [
-        { Profesional_id: 2, Profesional: 'dr. juan perez' },
-      ];
+      const rows2: DoctorRow[] = [{ Profesional_id: 2, Profesional: 'dr. juan perez' }];
       const result2 = await migrator.migrateDoctors(rows2, client as any, logStore as any);
 
       expect(result2.reused).toBe(1);
@@ -157,15 +151,11 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const logStore = createMockMigrationLogStore();
 
       // First insert
-      const rows1: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: 'Dr. Juan Perez' },
-      ];
+      const rows1: DoctorRow[] = [{ Profesional_id: 1, Profesional: 'Dr. Juan Perez' }];
       await migrator.migrateDoctors(rows1, client as any, logStore as any);
 
       // Try to migrate the same doctor with extra spaces
-      const rows2: DoctorRow[] = [
-        { Profesional_id: 2, Profesional: 'Dr.   Juan   Perez' },
-      ];
+      const rows2: DoctorRow[] = [{ Profesional_id: 2, Profesional: 'Dr.   Juan   Perez' }];
       const result2 = await migrator.migrateDoctors(rows2, client as any, logStore as any);
 
       expect(result2.reused).toBe(1);
@@ -193,9 +183,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: '' },
-      ];
+      const rows: DoctorRow[] = [{ Profesional_id: 1, Profesional: '' }];
 
       const result = await migrator.migrateDoctors(rows, client as any, logStore as any);
 
@@ -209,9 +197,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const logStore = createMockMigrationLogStore();
 
       // First batch: insert one
-      const rows1: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: 'Dr. Juan Perez' },
-      ];
+      const rows1: DoctorRow[] = [{ Profesional_id: 1, Profesional: 'Dr. Juan Perez' }];
       const result1 = await migrator.migrateDoctors(rows1, client as any, logStore as any);
       expect(result1.inserted).toBe(1);
 
@@ -234,9 +220,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: HealthInsuranceRow[] = [
-        { id: 1, nombre: 'OSDE' },
-      ];
+      const rows: HealthInsuranceRow[] = [{ id: 1, nombre: 'OSDE' }];
 
       const result = await migrator.migrateHealthInsurances(rows, client as any, logStore as any);
 
@@ -249,14 +233,10 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows1: HealthInsuranceRow[] = [
-        { id: 1, nombre: 'OSDE' },
-      ];
+      const rows1: HealthInsuranceRow[] = [{ id: 1, nombre: 'OSDE' }];
       await migrator.migrateHealthInsurances(rows1, client as any, logStore as any);
 
-      const rows2: HealthInsuranceRow[] = [
-        { id: 2, nombre: 'osde' },
-      ];
+      const rows2: HealthInsuranceRow[] = [{ id: 2, nombre: 'osde' }];
       const result2 = await migrator.migrateHealthInsurances(rows2, client as any, logStore as any);
 
       expect(result2.reused).toBe(1);
@@ -285,9 +265,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: VisitReasonRow[] = [
-        { id: 1, nombre: 'Consulta General' },
-      ];
+      const rows: VisitReasonRow[] = [{ id: 1, nombre: 'Consulta General' }];
 
       const result = await migrator.migrateVisitReasons(rows, client as any, logStore as any);
 
@@ -300,14 +278,10 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows1: VisitReasonRow[] = [
-        { id: 1, nombre: 'Consulta General' },
-      ];
+      const rows1: VisitReasonRow[] = [{ id: 1, nombre: 'Consulta General' }];
       await migrator.migrateVisitReasons(rows1, client as any, logStore as any);
 
-      const rows2: VisitReasonRow[] = [
-        { id: 2, nombre: 'CONSULTA GENERAL' },
-      ];
+      const rows2: VisitReasonRow[] = [{ id: 2, nombre: 'CONSULTA GENERAL' }];
       const result2 = await migrator.migrateVisitReasons(rows2, client as any, logStore as any);
 
       expect(result2.reused).toBe(1);
@@ -319,9 +293,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
     it('should verify existing schedule', async () => {
       const client = createMockPostgresClient();
 
-      const rows: ScheduleRow[] = [
-        { Horarios_id: 1, Horarios_estado: 0 },
-      ];
+      const rows: ScheduleRow[] = [{ Horarios_id: 1, Horarios_estado: 0 }];
 
       // Mock the schedules table data
       (client as any)._getTableData = () => [{ id: 1, name: '09:00' }];
@@ -335,9 +307,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
     it('should warn for non-existent schedule', async () => {
       const client = createMockPostgresClient();
 
-      const rows: ScheduleRow[] = [
-        { Horarios_id: 9999, Horarios_estado: 0 },
-      ];
+      const rows: ScheduleRow[] = [{ Horarios_id: 9999, Horarios_estado: 0 }];
 
       const result = await migrator.verifySchedules(rows, client as any);
 
@@ -363,16 +333,12 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
     it('should warn for invalid Horarios_estado value', async () => {
       const client = createMockPostgresClient();
 
-      const rows: ScheduleRow[] = [
-        { Horarios_id: 1, Horarios_estado: 99 },
-      ];
+      const rows: ScheduleRow[] = [{ Horarios_id: 1, Horarios_estado: 99 }];
 
       const result = await migrator.verifySchedules(rows, client as any);
 
       expect(result.warnings.length).toBeGreaterThan(0);
-      expect(
-        result.warnings.some((w) => w.warning.includes('Invalid'))
-      ).toBe(true);
+      expect(result.warnings.some((w) => w.warning.includes('Invalid'))).toBe(true);
     });
 
     it('should handle empty schedule list', async () => {
@@ -429,9 +395,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: 'Dr. Juan Perez' },
-      ];
+      const rows: DoctorRow[] = [{ Profesional_id: 1, Profesional: 'Dr. Juan Perez' }];
 
       // First run
       const result1 = await migrator.migrateDoctors(rows, client as any, logStore as any);
@@ -449,9 +413,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: any[] = [
-        { Profesional_id: 1, Profesional: null },
-      ];
+      const rows: any[] = [{ Profesional_id: 1, Profesional: null }];
 
       // Should handle gracefully (warn, not crash)
       const result = await migrator.migrateDoctors(rows, client as any, logStore as any);
@@ -462,9 +424,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: DoctorRow[] = [
-        { Profesional_id: 0, Profesional: 'Dr. Test' },
-      ];
+      const rows: DoctorRow[] = [{ Profesional_id: 0, Profesional: 'Dr. Test' }];
 
       const result = await migrator.migrateDoctors(rows, client as any, logStore as any);
       expect(result.inserted).toBe(1);
@@ -475,9 +435,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const logStore = createMockMigrationLogStore();
 
       const longName = 'Dr. ' + 'A'.repeat(500);
-      const rows: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: longName },
-      ];
+      const rows: DoctorRow[] = [{ Profesional_id: 1, Profesional: longName }];
 
       const result = await migrator.migrateDoctors(rows, client as any, logStore as any);
       expect(result.inserted).toBe(1);
@@ -487,9 +445,7 @@ describe('ReferenceDataMigrator - Unit Tests', () => {
       const client = createMockPostgresClient();
       const logStore = createMockMigrationLogStore();
 
-      const rows: DoctorRow[] = [
-        { Profesional_id: 1, Profesional: 'Dr. Ñoño Martínez' },
-      ];
+      const rows: DoctorRow[] = [{ Profesional_id: 1, Profesional: 'Dr. Ñoño Martínez' }];
 
       const result = await migrator.migrateDoctors(rows, client as any, logStore as any);
       expect(result.inserted).toBe(1);

@@ -14,12 +14,7 @@ export {
   createReferenceDataMigrator,
 } from './reference-data-migrator';
 
-export {
-  PatientMigrator,
-  PatientRow,
-  PatientMigrationResult,
-  createPatientMigrator,
-} from './patient-migrator';
+export { PatientMigrator, PatientRow, PatientMigrationResult, createPatientMigrator } from './patient-migrator';
 
 export {
   SurgeryMigrator,

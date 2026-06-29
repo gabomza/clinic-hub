@@ -13,22 +13,14 @@ describe('ConfigLoader - loadConfig', () => {
 
   describe('CLI argument parsing', () => {
     it('should parse --flag value format', () => {
-      const argv: string[] = [
-        '--dump-file',
-        '/path/to/dump.sql',
-        '--database-url',
-        'postgres://localhost/test',
-      ];
+      const argv: string[] = ['--dump-file', '/path/to/dump.sql', '--database-url', 'postgres://localhost/test'];
       const config = loadConfig(argv, {});
       expect(config.dumpFilePath).toBe('/path/to/dump.sql');
       expect(config.databaseUrl).toBe('postgres://localhost/test');
     });
 
     it('should parse --flag=value format', () => {
-      const argv: string[] = [
-        '--dump-file=/path/to/dump.sql',
-        '--database-url=postgres://localhost/test',
-      ];
+      const argv: string[] = ['--dump-file=/path/to/dump.sql', '--database-url=postgres://localhost/test'];
       const config = loadConfig(argv, {});
       expect(config.dumpFilePath).toBe('/path/to/dump.sql');
       expect(config.databaseUrl).toBe('postgres://localhost/test');
@@ -45,16 +37,12 @@ describe('ConfigLoader - loadConfig', () => {
       ];
       const config = loadConfig(argv, defaultEnv);
       expect(config.matchConfidenceThreshold).toBe(0.85);
-      expect(config.matchMinConsiderationThreshold).toBe(0.60);
+      expect(config.matchMinConsiderationThreshold).toBe(0.6);
       expect(config.insertBatchSize).toBe(1000);
     });
 
     it('should handle mixed --flag value and --flag=value formats', () => {
-      const argv: string[] = [
-        '--dump-file=/path/to/dump.sql',
-        '--database-url',
-        'postgres://localhost/test',
-      ];
+      const argv: string[] = ['--dump-file=/path/to/dump.sql', '--database-url', 'postgres://localhost/test'];
       const config = loadConfig(argv, {});
       expect(config.dumpFilePath).toBe('/path/to/dump.sql');
       expect(config.databaseUrl).toBe('postgres://localhost/test');
@@ -113,7 +101,7 @@ describe('ConfigLoader - loadConfig', () => {
         DATABASE_URL: 'postgres://localhost/test',
         DUMP_FILE_PATH: '/path/to/dump.sql',
       };
-      const config = loadConfig([] as string[],env);
+      const config = loadConfig([] as string[], env);
 
       expect(config.matchConfidenceThreshold).toBe(0.92);
       expect(config.matchMinConsiderationThreshold).toBe(0.75);
@@ -129,9 +117,7 @@ describe('ConfigLoader - loadConfig', () => {
       const env = {
         DUMP_FILE_PATH: '/path/to/dump.sql',
       };
-      expect(() => loadConfig(argv, env)).toThrow(
-        'DATABASE_URL es requerida y no puede estar vacía'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('DATABASE_URL es requerida y no puede estar vacía');
     });
 
     it('should fail if databaseUrl is only whitespace', () => {
@@ -139,9 +125,7 @@ describe('ConfigLoader - loadConfig', () => {
       const env = {
         DUMP_FILE_PATH: '/path/to/dump.sql',
       };
-      expect(() => loadConfig(argv, env)).toThrow(
-        'DATABASE_URL es requerida y no puede estar vacía'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('DATABASE_URL es requerida y no puede estar vacía');
     });
 
     it('should fail if dumpFilePath is empty', () => {
@@ -149,9 +133,7 @@ describe('ConfigLoader - loadConfig', () => {
       const env = {
         DATABASE_URL: 'postgres://localhost/test',
       };
-      expect(() => loadConfig(argv, env)).toThrow(
-        'DUMP_FILE_PATH es requerida y no puede estar vacía'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('DUMP_FILE_PATH es requerida y no puede estar vacía');
     });
 
     it('should fail if dumpFilePath is only whitespace', () => {
@@ -159,9 +141,7 @@ describe('ConfigLoader - loadConfig', () => {
       const env = {
         DATABASE_URL: 'postgres://localhost/test',
       };
-      expect(() => loadConfig(argv, env)).toThrow(
-        'DUMP_FILE_PATH es requerida y no puede estar vacía'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('DUMP_FILE_PATH es requerida y no puede estar vacía');
     });
   });
 
@@ -169,17 +149,13 @@ describe('ConfigLoader - loadConfig', () => {
     it('should fail if matchConfidenceThreshold is negative', () => {
       const argv = ['--match-threshold', '-0.1'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'matchConfidenceThreshold debe estar en el rango [0, 1]'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('matchConfidenceThreshold debe estar en el rango [0, 1]');
     });
 
     it('should fail if matchConfidenceThreshold is greater than 1', () => {
       const argv = ['--match-threshold', '1.5'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'matchConfidenceThreshold debe estar en el rango [0, 1]'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('matchConfidenceThreshold debe estar en el rango [0, 1]');
     });
 
     it('should accept matchConfidenceThreshold of 0', () => {
@@ -199,17 +175,13 @@ describe('ConfigLoader - loadConfig', () => {
     it('should fail if matchMinConsiderationThreshold is negative', () => {
       const argv = ['--match-min-threshold', '-0.1'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'matchMinConsiderationThreshold debe estar en el rango [0, 1]'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('matchMinConsiderationThreshold debe estar en el rango [0, 1]');
     });
 
     it('should fail if matchMinConsiderationThreshold is greater than 1', () => {
       const argv = ['--match-min-threshold', '1.1'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'matchMinConsiderationThreshold debe estar en el rango [0, 1]'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('matchMinConsiderationThreshold debe estar en el rango [0, 1]');
     });
 
     it('should accept matchMinConsiderationThreshold of 0', () => {
@@ -235,25 +207,15 @@ describe('ConfigLoader - loadConfig', () => {
 
   describe('Validation: Threshold relationship', () => {
     it('should fail if matchMinConsiderationThreshold > matchConfidenceThreshold', () => {
-      const argv = [
-        '--match-threshold',
-        '0.70',
-        '--match-min-threshold',
-        '0.80',
-      ];
+      const argv = ['--match-threshold', '0.70', '--match-min-threshold', '0.80'];
       const env = defaultEnv;
       expect(() => loadConfig(argv, env)).toThrow(
-        'matchMinConsiderationThreshold (0.8) no puede ser mayor a matchConfidenceThreshold (0.7)'
+        'matchMinConsiderationThreshold (0.8) no puede ser mayor a matchConfidenceThreshold (0.7)',
       );
     });
 
     it('should pass if matchMinConsiderationThreshold equals matchConfidenceThreshold', () => {
-      const argv = [
-        '--match-threshold',
-        '0.75',
-        '--match-min-threshold',
-        '0.75',
-      ];
+      const argv = ['--match-threshold', '0.75', '--match-min-threshold', '0.75'];
       const env = defaultEnv;
       const config = loadConfig(argv, env);
       expect(config.matchConfidenceThreshold).toBe(0.75);
@@ -261,16 +223,11 @@ describe('ConfigLoader - loadConfig', () => {
     });
 
     it('should pass if matchMinConsiderationThreshold < matchConfidenceThreshold', () => {
-      const argv = [
-        '--match-threshold',
-        '0.92',
-        '--match-min-threshold',
-        '0.60',
-      ];
+      const argv = ['--match-threshold', '0.92', '--match-min-threshold', '0.60'];
       const env = defaultEnv;
       const config = loadConfig(argv, env);
       expect(config.matchConfidenceThreshold).toBe(0.92);
-      expect(config.matchMinConsiderationThreshold).toBe(0.60);
+      expect(config.matchMinConsiderationThreshold).toBe(0.6);
     });
   });
 
@@ -278,17 +235,13 @@ describe('ConfigLoader - loadConfig', () => {
     it('should fail if insertBatchSize is 0', () => {
       const argv = ['--insert-batch-size', '0'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'insertBatchSize debe ser >= 1'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('insertBatchSize debe ser >= 1');
     });
 
     it('should fail if insertBatchSize is negative', () => {
       const argv = ['--insert-batch-size', '-10'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'insertBatchSize debe ser >= 1'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('insertBatchSize debe ser >= 1');
     });
 
     it('should accept insertBatchSize of 1', () => {
@@ -337,9 +290,7 @@ describe('ConfigLoader - loadConfig', () => {
     it('should fail if resetMode is invalid', () => {
       const argv = ['--reset', 'invalid-mode'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        "resetMode debe ser 'log-only' o 'full'"
-      );
+      expect(() => loadConfig(argv, env)).toThrow("resetMode debe ser 'log-only' o 'full'");
     });
 
     it('should use default resetMode if not provided', () => {
@@ -385,9 +336,7 @@ describe('ConfigLoader - loadConfig', () => {
         '2.0', // Invalid but not checked because required field fails first
       ];
       const env = { DUMP_FILE_PATH: '/path/to/dump.sql' };
-      expect(() => loadConfig(argv, env)).toThrow(
-        'DATABASE_URL es requerida'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('DATABASE_URL es requerida');
     });
 
     it('should validate threshold range before relationship', () => {
@@ -398,22 +347,13 @@ describe('ConfigLoader - loadConfig', () => {
         '0.80',
       ];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'matchConfidenceThreshold debe estar en el rango [0, 1]'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('matchConfidenceThreshold debe estar en el rango [0, 1]');
     });
 
     it('should throw error on first validation failure', () => {
-      const argv = [
-        '--match-threshold',
-        '-1.0',
-        '--insert-batch-size',
-        '-1',
-      ];
+      const argv = ['--match-threshold', '-1.0', '--insert-batch-size', '-1'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'matchConfidenceThreshold debe estar en el rango [0, 1]'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('matchConfidenceThreshold debe estar en el rango [0, 1]');
     });
   });
 
@@ -458,13 +398,13 @@ describe('ConfigLoader - loadConfig', () => {
         REPORT_OUTPUT_DIR: './reports-out',
         INSERT_BATCH_SIZE: '2000',
       };
-      const config = loadConfig([] as string[],env);
+      const config = loadConfig([] as string[], env);
 
       expect(config).toEqual({
         dumpFilePath: '/dumps/mysql.sql',
         databaseUrl: 'postgres://user:pass@localhost:5432/db',
         matchConfidenceThreshold: 0.88,
-        matchMinConsiderationThreshold: 0.70,
+        matchMinConsiderationThreshold: 0.7,
         resetMode: 'full',
         reportOutputDir: './reports-out',
         insertBatchSize: 2000,
@@ -483,7 +423,7 @@ describe('ConfigLoader - loadConfig', () => {
 
       expect(config.dumpFilePath).toBe('/dumps/mysql.sql');
       expect(config.databaseUrl).toBe('postgres://localhost/db');
-      expect(config.matchConfidenceThreshold).toBe(0.90); // From CLI
+      expect(config.matchConfidenceThreshold).toBe(0.9); // From CLI
       expect(config.matchMinConsiderationThreshold).toBe(0.65); // From env
       expect(config.resetMode).toBe('full'); // From env
       expect(config.reportOutputDir).toBe('./reports'); // Default
@@ -495,7 +435,7 @@ describe('ConfigLoader - loadConfig', () => {
         DATABASE_URL: 'postgres://localhost/db',
         DUMP_FILE_PATH: '/path/to/dump.sql',
       };
-      const config = loadConfig([] as string[],env);
+      const config = loadConfig([] as string[], env);
 
       expect(config.dumpFilePath).toBe('/path/to/dump.sql');
       expect(config.databaseUrl).toBe('postgres://localhost/db');
@@ -516,12 +456,7 @@ describe('ConfigLoader - loadConfig', () => {
     });
 
     it('should handle scientific notation for threshold values', () => {
-      const argv: string[] = [
-        '--match-threshold',
-        '1e-1',
-        '--match-min-threshold',
-        '1e-2',
-      ];
+      const argv: string[] = ['--match-threshold', '1e-1', '--match-min-threshold', '1e-2'];
       const env = defaultEnv;
       const config = loadConfig(argv, env);
       expect(config.matchConfidenceThreshold).toBe(0.1);
@@ -556,12 +491,7 @@ describe('ConfigLoader - loadConfig', () => {
     });
 
     it('should ignore flags that are not recognized', () => {
-      const argv = [
-        '--unknown-flag',
-        'value',
-        '--database-url',
-        'postgres://localhost/db',
-      ];
+      const argv = ['--unknown-flag', 'value', '--database-url', 'postgres://localhost/db'];
       const env = {
         DUMP_FILE_PATH: '/path/to/dump.sql',
       };
@@ -573,7 +503,7 @@ describe('ConfigLoader - loadConfig', () => {
   describe('Error messages in Spanish', () => {
     it('should provide Spanish error messages', () => {
       const env = { DUMP_FILE_PATH: '/path/to/dump.sql' };
-      expect(() => loadConfig([] as string[],env)).toThrow(/requerida/);
+      expect(() => loadConfig([] as string[], env)).toThrow(/requerida/);
     });
 
     it('should include invalid value in error message', () => {
@@ -585,9 +515,7 @@ describe('ConfigLoader - loadConfig', () => {
     it('should include field name in threshold error', () => {
       const argv = ['--match-threshold', '1.5'];
       const env = defaultEnv;
-      expect(() => loadConfig(argv, env)).toThrow(
-        'matchConfidenceThreshold'
-      );
+      expect(() => loadConfig(argv, env)).toThrow('matchConfidenceThreshold');
     });
   });
 });

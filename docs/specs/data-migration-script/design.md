@@ -142,6 +142,7 @@ Responsable de leer el archivo de dump y producir una representación en memoria
 **Por qué parsing de texto y no una instancia MySQL/SQLite temporal:** el dump es `mysqldump` puro (`CREATE TABLE` + `INSERT INTO ... VALUES (...);`), sin triggers, vistas, ni procedimientos. Todo el valor que aportaría un motor real (parseo de tipos, ejecución de constraints) no aplica aquí porque MyISAM no tenía FKs y los `CREATE TABLE` solo informan tipos column por columna, que ya conocemos de antemano por tabla. Cargar una instancia MySQL temporal (vía Docker) introduce una dependencia de infraestructura pesada y un punto de fallo adicional (versión de Docker disponible, compatibilidad del charset, tiempo de arranque) solo para volver a leer los mismos valores con `SELECT *`. Un parser de texto dedicado, bien probado contra la gramática real observada en el dump, es más simple de versionar, testear unitariamente (fixtures de texto) y depurar.
 
 **Diseño del parser:** no es un parser SQL genérico (se descarta `node-sql-parser` como dependencia completa) sino un parser de propósito específico para la gramática de `mysqldump`, porque:
+
 - Conocemos de antemano el subconjunto exacto a soportar: `CREATE TABLE` (solo para extraer nombres de columnas en orden), `INSERT INTO `tabla` VALUES (...), (...), ...;` con posible multi-row, y directivas `/*!...*/`, `LOCK TABLES`, `UNLOCK TABLES` que se ignoran.
 - Debe tolerar: comillas simples escapadas (`\'`), backslashes (`\\`, `\r\n` literal dentro de un valor de texto), valores `NULL` sin comillas, números sin comillas, y el charset utf8 con tildes/ñ (Node maneja UTF-8 nativamente al leer el archivo con encoding `utf8`, así que no se requiere transcodificación adicional — se verifica únicamente que el archivo se lea con el encoding correcto).
 - Debe soportar tanto el caso observado en `sample_dump.sql` (una fila por sentencia `INSERT INTO ... VALUES (fila);`) como el caso de múltiples tuplas por sentencia (`INSERT INTO ... VALUES (fila1),(fila2),(fila3);`) que es la forma habitual en la que `mysqldump` exporta tablas grandes — el dump de producción casi seguro usará esta forma multi-row para las tablas con más filas (`fichas`, `inst_turnos`, `caja`), aunque la muestra actual no la ejemplifique.
@@ -149,8 +150,8 @@ Responsable de leer el archivo de dump y producir una representación en memoria
 ```typescript
 type ParsedTable = {
   name: string;
-  columns: string[];          // orden de columnas tal como aparece en CREATE TABLE
-  rows: RawRow[];              // una entrada por fila INSERT, valores ya des-escapados
+  columns: string[]; // orden de columnas tal como aparece en CREATE TABLE
+  rows: RawRow[]; // una entrada por fila INSERT, valores ya des-escapados
 };
 
 /** Fila cruda: claves = nombres de columna, valores = string | number | null tal como vienen del dump. */
@@ -158,7 +159,7 @@ type RawRow = Record<string, string | number | null>;
 
 type DumpParseResult = {
   tables: Map<string, ParsedTable>;
-  excludedTables: string[];  // tablas explícitamente excluidas (inst_alt, medias, ventamedias)
+  excludedTables: string[]; // tablas explícitamente excluidas (inst_alt, medias, ventamedias)
   /** Tablas detectadas en el dump pero fuera del catálogo conocido (alerta temprana, no error). */
   unknownTables: string[];
 };
@@ -177,17 +178,13 @@ Wrapper delgado sobre `pg.Pool` que centraliza la ejecución de queries, transac
 ```typescript
 interface PostgresClient {
   withTransaction<T>(fn: (tx: PoolClient) => Promise<T>): Promise<T>;
-  insertBatch(
-    tx: PoolClient,
-    table: string,
-    columns: string[],
-    rows: unknown[][],
-  ): Promise<void>; // construye un único INSERT multi-VALUES parametrizado por lote (tamaño = config.insertBatchSize)
+  insertBatch(tx: PoolClient, table: string, columns: string[], rows: unknown[][]): Promise<void>; // construye un único INSERT multi-VALUES parametrizado por lote (tamaño = config.insertBatchSize)
   query<T>(tx: PoolClient | Pool, sql: string, params?: unknown[]): Promise<T[]>;
 }
 ```
 
 **Justificación de `pg` sobre alternativas:**
+
 - `supabase-js`: opera vía PostgREST (HTTP), pensado para clientes de aplicación bajo RLS; no ofrece transacciones multi-statement reales ni control de rollback granular — descartado para una herramienta administrativa de carga masiva.
 - `postgres.js`: cliente válido y rápido, pero `pg` tiene mayor adopción, mejor soporte de tipos para este caso (arrays de parámetros, manejo de `NULL` explícito) y es el cliente de referencia en la documentación de Supabase para conexiones directas (modo "session"/"transaction pooler"). Se usa la cadena de conexión directa de Postgres (no la URL de PostgREST).
 - `COPY` (vía `pg-copy-streams`): es la opción más rápida para cargas masivas puras, pero exige que los datos ya estén completamente resueltos antes de la carga (no admite lógica fila por fila intercalada como el fuzzy matching o la consulta a `migration_log`). Dado el volumen esperado (una clínica chica; miles, no millones de filas) la diferencia de rendimiento frente a INSERTs por lotes de ~500 filas dentro de una transacción es irrelevante en términos absolutos (segundos, no minutos), así que no se justifica la complejidad adicional de un pipeline de dos fases (resolver todo en memoria, luego COPY).
@@ -238,6 +235,7 @@ type MigrationLogEntryInput = MigrationLogEntry;
 ```
 
 **Mecanismo de idempotencia concreto (Requirement 9.1, 9.2, 9.4):**
+
 - Para tablas con id legacy preservado explícitamente (`doctors`, `health_insurances`, `visit_reasons`, `schedules`): la idempotencia se verifica primero por **coincidencia exacta de nombre normalizado contra el destino** (Requirement 1.6: case-insensitive, espacios normalizados) y, en paralelo, se registra en `migration_log` para trazabilidad — no es estrictamente necesaria la tabla de control para estas tablas porque el criterio determinístico ya es el propio dato, pero se registra igual por uniformidad del reporte.
 - Para tablas sin id preservado (`patients`, `appointments`, `clinical_records`, `surgeries`, `cash_entries`): antes de insertar cualquier fila, el Migrator correspondiente consulta `migration_log` por `(source_table, source_pk)`. Si existe, **reusa `target_id`** sin volver a insertar ni volver a ejecutar el matching de pacientes (garantizando Requirement 9.5: mismo resultado en reejecuciones, porque ni siquiera se vuelve a calcular). Si no existe, procesa la fila normalmente y registra el resultado al final, dentro de la misma transacción que el INSERT al destino (atomicidad: si la transacción hace rollback, tampoco queda el registro en `migration_log`, cumpliendo Requirement 9.4 — una interrupción a mitad de camino no deja estados inconsistentes entre destino y log).
 - `payload_hash` permite, como mejora de robustez, detectar si la fila de origen cambió entre ejecuciones (por ejemplo, si el dump de producción reemplaza al de muestra con datos distintos para el mismo id) — si el hash difiere, el script lo trata como caso a revisar y lo deja anotado en el reporte como advertencia ("fila ya migrada pero el contenido de origen cambió"), en vez de reinsertar silenciosamente o ignorar el cambio.
@@ -250,6 +248,7 @@ El componente más crítico del diseño (cubre íntegramente Requirement 6). Res
 **Elección de algoritmo: Jaro-Winkler (vía `natural.JaroWinklerDistance`).**
 
 Justificación frente a las alternativas evaluadas:
+
 - **Levenshtein (`fastest-levenshtein`):** mide número de ediciones (inserciones/borrados/sustituciones) sin distinguir posición. Penaliza igual un error al principio que al final de la palabra. En apellidos españoles, errores de tipeo y variantes ortográficas tienden a concentrarse en sufijos (`GONZALEZ` vs `GONZALEZ DE` vs `GONZALES`) o en falta de tildes (`PEÑA` vs `PENA`), mientras que el inicio del apellido casi nunca varía. Levenshtein no captura ese patrón.
 - **Jaro-Winkler:** da un bono de similitud adicional cuando los primeros caracteres coinciden (parámetro de prefijo, hasta 4 caracteres), que es exactamente el patrón de error esperado en este dataset. Es el algoritmo estándar de la industria para deduplicación de registros de personas (record linkage), nombres y direcciones — confirmado en la comparación de algoritmos para este tipo de caso de uso. Además es más rápido de calcular que Levenshtein completo para strings cortos como nombres.
 - **`fuse.js`:** está orientado a búsqueda difusa sobre colecciones/UI (autocomplete), con un modelo de scoring más opaco y pensado para "buscar lo más parecido entre muchas opciones", no para la decisión binaria auditable que exige el Requirement 6 (umbral de confianza vs umbral de consideración, explicado y configurable). Se descarta por no ajustarse al modelo de decisión que pide el requisito.
@@ -258,6 +257,7 @@ Justificación frente a las alternativas evaluadas:
 Se elige la librería `natural` porque expone `JaroWinklerDistance` directamente, evitando agregar una dependencia adicional solo para esa función, y porque incluye utilidades de tokenización reutilizables si en el futuro se necesita normalizar texto de forma más sofisticada.
 
 **Normalización previa a la comparación** (independiente del algoritmo, aplicada siempre antes de calcular el score):
+
 1. Mayúsculas (`toUpperCase`).
 2. Remover tildes/diacríticos (`Ñ` se preserva como letra distinta de `N`, ya que en apellidos españoles cambia el significado; solo se normalizan acentos vocálicos vía `normalize('NFD')` + strip de marcas combinantes).
 3. Colapsar espacios múltiples a uno solo y recortar (`trim`).
@@ -299,7 +299,7 @@ interface PatientMatcher {
 2. Se normaliza el texto de entrada y se compara contra el `candidatePool` (todos los `patients` ya migrados al momento de la corrida, cargados una vez en memoria y reutilizados, ver Performance).
 3. **Modo `full_name`** (usado por `cirugias.apellido` + `cirugias.nombre`, Requirement 6.1/6.7): el score combinado de un candidato es el promedio ponderado `0.6 * JaroWinkler(apellido) + 0.4 * JaroWinkler(nombre)` — se pondera más el apellido porque en el dataset legacy es el campo más estable (los nombres de pila incluyen variantes largas como `"ESTHER DE"`, sufijos `"DE"` que indican apellido de casada agregado al campo nombre).
 4. **Modo `last_name_only`** (usado por `inst_turnos.Turno_paciente`, Requirement 6.5): el score es directamente `JaroWinkler(apellido)` contra `patients.last_name`; el resultado solo se considera válido si produce exactamente un candidato por encima del umbral de confianza — cualquier otro resultado (cero o más de uno) cae en los criterios 6.3/6.4 igual que en el modo `full_name`.
-5. Se filtran candidatos con score ≥ `matchMinConsiderationThreshold`. 
+5. Se filtran candidatos con score ≥ `matchMinConsiderationThreshold`.
    - 0 candidatos → `no_match` (Requirement 6.4).
    - ≥1 candidato, y exactamente 1 supera además `matchConfidenceThreshold` **sin que ningún otro candidato esté a menos de un margen de separación (`matchAmbiguityMargin`, ej. 0.03) de ese score** → `auto_linked` (Requirement 6.2). El margen de separación evita el caso límite de dos candidatos casi idénticos donde ambos superan el umbral de confianza por poco.
    - En cualquier otro caso (dos o más candidatos sobre el umbral de confianza, o ninguno lo supera pero sí hay candidatos sobre el umbral mínimo) → `manual_review`, con la lista completa de candidatos y sus scores (Requirement 6.3).
@@ -324,6 +324,7 @@ interface ReferenceDataMigrator {
 ```
 
 Reglas aplicadas (Requirement 1.1–1.6):
+
 - Para doctores/obras sociales/motivos: por cada fila del dump, normalizar el nombre (mismo normalizador de texto que `PatientMatcher`, reutilizado vía función compartida `normalizeText()`) y buscarlo contra el destino. Si existe (case-insensitive, espacios normalizados) → tratado como ya migrado, se registra en `migration_log` con `status: 'migrated'` y el `target_id` existente, sin insertar duplicado (Requirement 1.6). Si no existe → INSERT preservando el id legacy explícitamente (`INSERT ... (id, name, ...) VALUES (...)`, ya que el esquema usa `SERIAL` pero acepta inserción explícita de id; se ejecuta `setval` sobre la secuencia al final de cada tabla de referencia para evitar colisiones futuras).
 - Para `inst_horarios`: no se inserta nada (los `schedules` ya están seedeados con ids preservados); se verifica que cada `Horarios_id` del dump exista en destino, y se reporta como advertencia cualquiera que no exista (Requirement 1.4). Adicionalmente, se valida `Horarios_estado ∈ {0,1,2}`; valores fuera de ese conjunto se marcan como error de mapeo de doctor y se excluyen del conteo de verificación exitosa, sin detener la migración (Requirement 1.5).
 
@@ -343,6 +344,7 @@ interface PatientMigrationResult extends TableMigrationSummary {
 ```
 
 Transformaciones (Requirement 2.1–2.7), aplicadas fila por fila dentro de una transacción por lote:
+
 - Mapeo de campos según `docs/sdd.md` 4.3 (`patients`), excluyendo `fuente`, `lugarTrabajo`, `tipoTrabajo`, `trabajoConyuge`, `tipoTrabajoConyuge`.
 - `profesional === '0'` → `doctor_id = NULL`. `profesional` numérico que resuelve contra un doctor migrado → ese id. `profesional` que no resuelve → `doctor_id = NULL` + advertencia en el reporte (Requirement 2.4).
 - Fechas con valor `'0000-00-00'` → `NULL` (aplica a `fechaNac`, `primerConsulta`, `ultimaConsulta`).
@@ -378,7 +380,7 @@ const APPOINTMENT_STATUS_MAP: Record<number, AppointmentStatus> = {
 const DEFAULT_APPOINTMENT_STATUS: AppointmentStatus = 'pending';
 ```
 
-  Cualquier valor de `Turno_estado` no presente en el mapa → advertencia + `status = 'pending'` (Requirement 3.5). *(Nota: los valores reales 0/1/2/3 observados en la muestra son `0` y `1`; el mapeo completo se valida y ajusta cuando llegue el dump de producción, ver Requirement 10.6 — el diseño ya provee el mecanismo genérico de advertencia para valores no vistos).*
+Cualquier valor de `Turno_estado` no presente en el mapa → advertencia + `status = 'pending'` (Requirement 3.5). _(Nota: los valores reales 0/1/2/3 observados en la muestra son `0` y `1`; el mapeo completo se valida y ajusta cuando llegue el dump de producción, ver Requirement 10.6 — el diseño ya provee el mecanismo genérico de advertencia para valores no vistos)._
 
 ### ClinicalRecordMigrator
 
@@ -410,17 +412,13 @@ interface SurgeryMigrator {
   populateLookups(rows: RawRow[]): Promise<LookupIdMaps>;
 
   /** Paso 2: migra cada fila de cirugias resolviendo lookups y paciente. */
-  migrate(
-    rows: RawRow[],
-    lookups: LookupIdMaps,
-    patientPool: PatientCandidate[],
-  ): Promise<TableMigrationSummary>;
+  migrate(rows: RawRow[], lookups: LookupIdMaps, patientPool: PatientCandidate[]): Promise<TableMigrationSummary>;
 }
 
 interface LookupIdMaps {
-  diagnosisByName: Map<string, number>;   // surgery_diagnoses
-  bodyPartByName: Map<string, number>;    // body_parts
-  techniqueByName: Map<string, number>;   // surgery_techniques
+  diagnosisByName: Map<string, number>; // surgery_diagnoses
+  bodyPartByName: Map<string, number>; // body_parts
+  techniqueByName: Map<string, number>; // surgery_techniques
 }
 ```
 
@@ -455,7 +453,7 @@ Cubre Requirement 8 en su totalidad. Recolecta eventos de auditoría emitidos po
 ```typescript
 interface AuditEvent {
   sourceTable: string;
-  sourceRowRef: string;            // identificador de fila de origen (ej. idFicha=42, o id_cirugia=7)
+  sourceRowRef: string; // identificador de fila de origen (ej. idFicha=42, o id_cirugia=7)
   outcome:
     | 'migrated'
     | 'excluded_error'
@@ -465,7 +463,7 @@ interface AuditEvent {
     | 'auto_linked'
     | 'manual_review'
     | 'no_match';
-  reason?: string;                  // motivo legible (Req 8.3)
+  reason?: string; // motivo legible (Req 8.3)
   details?: Record<string, unknown>; // ej: texto original, candidatos con score (Req 8.2)
 }
 
@@ -494,16 +492,50 @@ interface ReportBuilder {
   ```json
   {
     "runId": "2026-06-16T19:30:00Z",
-    "summaryByTable": [ { "tableName": "fichas", "rowsRead": 13, "rowsMigrated": 13, "rowsExcluded": 0, "warnings": 1 } ],
-    "excludedTables": [ { "tableName": "inst_alt", "reason": "Tabla sin equivalente en el nuevo esquema (Requirement 11.1)" } ],
+    "summaryByTable": [{ "tableName": "fichas", "rowsRead": 13, "rowsMigrated": 13, "rowsExcluded": 0, "warnings": 1 }],
+    "excludedTables": [
+      { "tableName": "inst_alt", "reason": "Tabla sin equivalente en el nuevo esquema (Requirement 11.1)" }
+    ],
     "patientMatching": {
-      "autoLinked": [ { "sourceTable": "inst_turnos", "sourceRowRef": "Turno_id=3", "originalText": "Amadei", "patientId": 57, "score": 0.95 } ],
-      "manualReview": [ { "sourceTable": "cirugias", "sourceRowRef": "id_cirugia=4", "originalText": "AGOSTINI, ESTHER DE", "candidates": [ { "patientId": 12, "score": 0.88 }, { "patientId": 30, "score": 0.86 } ] } ],
-      "noMatch": [ { "sourceTable": "cirugias", "sourceRowRef": "id_cirugia=7", "originalText": "AGUILAR, MARIA" } ],
-      "possibleDuplicatesInTarget": [ { "patientA": 12, "patientB": 30, "score": 0.91 } ]
+      "autoLinked": [
+        {
+          "sourceTable": "inst_turnos",
+          "sourceRowRef": "Turno_id=3",
+          "originalText": "Amadei",
+          "patientId": 57,
+          "score": 0.95
+        }
+      ],
+      "manualReview": [
+        {
+          "sourceTable": "cirugias",
+          "sourceRowRef": "id_cirugia=4",
+          "originalText": "AGOSTINI, ESTHER DE",
+          "candidates": [
+            { "patientId": 12, "score": 0.88 },
+            { "patientId": 30, "score": 0.86 }
+          ]
+        }
+      ],
+      "noMatch": [{ "sourceTable": "cirugias", "sourceRowRef": "id_cirugia=7", "originalText": "AGUILAR, MARIA" }],
+      "possibleDuplicatesInTarget": [{ "patientA": 12, "patientB": 30, "score": 0.91 }]
     },
-    "errors": [ { "sourceTable": "caja", "sourceRowRef": "idCaja=99", "reason": "ingresosCaja y egresosCaja ambos distintos de cero", "action": "fila excluida" } ],
-    "warnings": [ { "sourceTable": "fichas", "sourceRowRef": "idFicha=8", "reason": "profesional no resuelve a doctor migrado", "action": "doctor_id = NULL" } ]
+    "errors": [
+      {
+        "sourceTable": "caja",
+        "sourceRowRef": "idCaja=99",
+        "reason": "ingresosCaja y egresosCaja ambos distintos de cero",
+        "action": "fila excluida"
+      }
+    ],
+    "warnings": [
+      {
+        "sourceTable": "fichas",
+        "sourceRowRef": "idFicha=8",
+        "reason": "profesional no resuelve a doctor migrado",
+        "action": "doctor_id = NULL"
+      }
+    ]
   }
   ```
 - **`migration-report-<YYYYMMDDTHHmmss>.md`**: resumen legible por humanos generado a partir del mismo objeto `MigrationReport`, con una tabla de resumen por tabla, una sección dedicada "Pacientes pendientes de revisión manual" (con texto original y candidatos), una sección "Pacientes sin coincidencia", una sección "Posibles duplicados en destino", y una sección "Errores y advertencias" — pensado para que el responsable de la migración revise y dé conformidad sin tener que inspeccionar la base directamente (Requirement 8.6).
@@ -521,6 +553,7 @@ interface MigrationOrchestrator {
 ```
 
 Orden de ejecución (ver también Business Process):
+
 1. `ensureSchema` de `migration_log`.
 2. `ReferenceDataMigrator` (doctores, obras sociales, motivos, verificación de horarios) — no depende de nada más.
 3. `PatientMigrator` (`fichas` → `patients`) — depende de doctores ya migrados para resolver `doctor_id`.
@@ -692,15 +725,15 @@ sequenceDiagram
 
 ## Error Handling
 
-| Categoría | Ejemplo | Estrategia |
-|---|---|---|
-| **Error de fila individual (recuperable)** | Fecha sentinela, monto ambiguo en `caja`, paciente no resuelto, horario inexistente | Se captura dentro del propio Migrator, se excluye solo esa fila (o se inserta con campo `NULL` según el requisito aplicable), se emite `AuditEvent` con motivo y acción, y la migración de esa tabla continúa con la siguiente fila. Ningún error de fila individual detiene la corrida completa (consistente con Requirements 1.5, 3.4, 3.5, 4.3, 7.4, 7.6). |
-| **Error de transacción (infraestructura)** | Caída de conexión a Postgres a mitad de un lote de INSERTs | Cada migrador opera dentro de `PostgresClient.withTransaction`, con alcance por tabla (no una transacción gigante para toda la corrida, para no perder todo el progreso ante un fallo tardío, pero sí lo suficientemente granular para que un fallo a mitad de un lote haga rollback de ese lote sin dejar filas a medio insertar). Al hacer rollback, tampoco quedan registros parciales en `migration_log` para esa tabla (atomicidad INSERT + log), por lo que una reejecución retoma exactamente donde quedó (Requirement 9.4). |
-| **Error de parseo del dump** | Sentencia `INSERT` malformada, tabla con columnas inesperadas | El `DumpParser` falla de forma controlada con un mensaje que incluye el número de línea aproximado y la tabla afectada; el proceso completo se aborta (no tiene sentido continuar con datos potencialmente mal leídos), exit code distinto de 0, sin haber tocado la base de datos todavía (el parseo es 100% previo y en memoria). |
-| **Tabla desconocida en el dump** | El dump completo de producción incluye una tabla no prevista | Se reporta como advertencia a nivel de proceso ("tabla no reconocida, ignorada") en el reporte final, sin abortar — alineado con Requirement 10.6 (manejar casos no contemplados mediante mecanismos genéricos de advertencia, no falla no controlada). |
-| **Ambigüedad de matching** | Dos candidatos de paciente con score similar | No es un error técnico — es un resultado de negocio válido (`manual_review`), modelado explícitamente en `MatchOutcome`, nunca lanzado como excepción. |
-| **Violación de constraint en destino** | Un `INSERT` viola una FK o CHECK no anticipado por las reglas de transformación | Se captura el error de Postgres a nivel de lote, se hace rollback de ese lote, se reintenta fila por fila (modo degradado) para aislar cuál fila específica falló, se excluye solo esa fila con el mensaje de error de Postgres como `reason`, y se continúa con el resto. Esto cubre el caso no contemplado de Requirement 10.6 a nivel de base de datos. |
-| **Configuración inválida** | Falta `DATABASE_URL`, umbrales fuera de rango (0–1) | `ConfigLoader` valida al inicio y aborta antes de tocar el dump o la base, con mensaje claro de qué falta corregir. |
+| Categoría                                  | Ejemplo                                                                             | Estrategia                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Error de fila individual (recuperable)** | Fecha sentinela, monto ambiguo en `caja`, paciente no resuelto, horario inexistente | Se captura dentro del propio Migrator, se excluye solo esa fila (o se inserta con campo `NULL` según el requisito aplicable), se emite `AuditEvent` con motivo y acción, y la migración de esa tabla continúa con la siguiente fila. Ningún error de fila individual detiene la corrida completa (consistente con Requirements 1.5, 3.4, 3.5, 4.3, 7.4, 7.6).                                                                                                                                                                       |
+| **Error de transacción (infraestructura)** | Caída de conexión a Postgres a mitad de un lote de INSERTs                          | Cada migrador opera dentro de `PostgresClient.withTransaction`, con alcance por tabla (no una transacción gigante para toda la corrida, para no perder todo el progreso ante un fallo tardío, pero sí lo suficientemente granular para que un fallo a mitad de un lote haga rollback de ese lote sin dejar filas a medio insertar). Al hacer rollback, tampoco quedan registros parciales en `migration_log` para esa tabla (atomicidad INSERT + log), por lo que una reejecución retoma exactamente donde quedó (Requirement 9.4). |
+| **Error de parseo del dump**               | Sentencia `INSERT` malformada, tabla con columnas inesperadas                       | El `DumpParser` falla de forma controlada con un mensaje que incluye el número de línea aproximado y la tabla afectada; el proceso completo se aborta (no tiene sentido continuar con datos potencialmente mal leídos), exit code distinto de 0, sin haber tocado la base de datos todavía (el parseo es 100% previo y en memoria).                                                                                                                                                                                                 |
+| **Tabla desconocida en el dump**           | El dump completo de producción incluye una tabla no prevista                        | Se reporta como advertencia a nivel de proceso ("tabla no reconocida, ignorada") en el reporte final, sin abortar — alineado con Requirement 10.6 (manejar casos no contemplados mediante mecanismos genéricos de advertencia, no falla no controlada).                                                                                                                                                                                                                                                                             |
+| **Ambigüedad de matching**                 | Dos candidatos de paciente con score similar                                        | No es un error técnico — es un resultado de negocio válido (`manual_review`), modelado explícitamente en `MatchOutcome`, nunca lanzado como excepción.                                                                                                                                                                                                                                                                                                                                                                              |
+| **Violación de constraint en destino**     | Un `INSERT` viola una FK o CHECK no anticipado por las reglas de transformación     | Se captura el error de Postgres a nivel de lote, se hace rollback de ese lote, se reintenta fila por fila (modo degradado) para aislar cuál fila específica falló, se excluye solo esa fila con el mensaje de error de Postgres como `reason`, y se continúa con el resto. Esto cubre el caso no contemplado de Requirement 10.6 a nivel de base de datos.                                                                                                                                                                          |
+| **Configuración inválida**                 | Falta `DATABASE_URL`, umbrales fuera de rango (0–1)                                 | `ConfigLoader` valida al inicio y aborta antes de tocar el dump o la base, con mensaje claro de qué falta corregir.                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 Principio general: **fail-fast a nivel de configuración y parseo** (porque un dato mal leído contamina todo lo siguiente), **fail-soft a nivel de fila de negocio** (porque el objetivo explícito del Requirement 8 es producir evidencia de los casos problemáticos, no impedir que el resto de la migración avance), **transacciones acotadas por tabla** para balancear capacidad de rollback con progreso incremental real.
 

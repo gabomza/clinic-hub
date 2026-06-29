@@ -54,11 +54,7 @@ export type CashEntryMigrationResult = {
 };
 
 export type CashEntryMigrator = {
-  migrate(
-    rows: CashEntryRow[],
-    client: PostgresClient,
-    logStore: MigrationLogStore,
-  ): Promise<CashEntryMigrationResult>;
+  migrate(rows: CashEntryRow[], client: PostgresClient, logStore: MigrationLogStore): Promise<CashEntryMigrationResult>;
 };
 
 /**

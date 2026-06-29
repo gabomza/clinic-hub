@@ -9,11 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createPatientMatcher,
-  type PatientMatcher,
-  type PatientCandidate,
-} from '../patient-matcher';
+import { createPatientMatcher, type PatientMatcher, type PatientCandidate } from '../patient-matcher';
 
 describe('PatientMatcher', () => {
   let matcher: PatientMatcher;
@@ -53,39 +49,23 @@ describe('PatientMatcher', () => {
     it('should use default thresholds when not provided', () => {
       const m = createPatientMatcher({});
       // Verify by testing with known scores
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' }];
 
-      const result = m.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = m.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
     });
   });
 
   describe('Empty input handling (Requirement 6.6)', () => {
-    const pool: PatientCandidate[] = [
-      { id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' },
-    ];
+    const pool: PatientCandidate[] = [{ id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' }];
 
     it('should return no_match for empty lastName and firstName', () => {
-      const result = matcher.match(
-        { lastName: '', firstName: '' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: '', firstName: '' }, 'full_name', pool);
       expect(result.outcome).toBe('no_match');
     });
 
     it('should return no_match for null/undefined inputs', () => {
-      const result = matcher.match(
-        { lastName: undefined, firstName: undefined },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: undefined, firstName: undefined }, 'full_name', pool);
       expect(result.outcome).toBe('no_match');
     });
 
@@ -95,11 +75,7 @@ describe('PatientMatcher', () => {
     });
 
     it('should return no_match for last_name_only mode with empty lastName', () => {
-      const result = matcher.match(
-        { lastName: '', firstName: 'MARIA' },
-        'last_name_only',
-        pool,
-      );
+      const result = matcher.match({ lastName: '', firstName: 'MARIA' }, 'last_name_only', pool);
       expect(result.outcome).toBe('no_match');
       expect(result.reason).toContain('last_name_only mode requires');
     });
@@ -116,11 +92,7 @@ describe('PatientMatcher', () => {
     ];
 
     it('should auto-link exact match (normalized)', () => {
-      const result = matcher.match(
-        { lastName: 'rodriguez de sosa', firstName: 'ilda' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'rodriguez de sosa', firstName: 'ilda' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({
         candidateId: 1,
@@ -131,31 +103,19 @@ describe('PatientMatcher', () => {
     });
 
     it('should auto-link normalized uppercase input', () => {
-      const result = matcher.match(
-        { lastName: 'PEDERNERA', firstName: 'ANGELA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'PEDERNERA', firstName: 'ANGELA' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({ candidateId: 2 });
     });
 
     it('should auto-link names with multiple words', () => {
-      const result = matcher.match(
-        { lastName: 'RODRIGUEZ DE SOSA', firstName: 'ILDA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'RODRIGUEZ DE SOSA', firstName: 'ILDA' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({ candidateId: 1 });
     });
 
     it('should auto-link names with common particles like DE', () => {
-      const result = matcher.match(
-        { lastName: 'JIRALA', firstName: 'NANCY DE' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'JIRALA', firstName: 'NANCY DE' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({ candidateId: 4 });
     });
@@ -181,14 +141,8 @@ describe('PatientMatcher', () => {
     });
 
     it('should match PEÑA (with tilde) against PENA (without)', () => {
-      const testPool: PatientCandidate[] = [
-        { id: 1, lastName: 'PENA', firstName: 'JOSE' },
-      ];
-      const result = matcher.match(
-        { lastName: 'PEÑA', firstName: 'JOSÉ' },
-        'full_name',
-        testPool,
-      );
+      const testPool: PatientCandidate[] = [{ id: 1, lastName: 'PENA', firstName: 'JOSE' }];
+      const result = matcher.match({ lastName: 'PEÑA', firstName: 'JOSÉ' }, 'full_name', testPool);
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
         expect(result.score).toBeGreaterThan(0.9);
@@ -196,34 +150,20 @@ describe('PatientMatcher', () => {
     });
 
     it('should preserve ñ in normalization', () => {
-      const result = matcher.match(
-        { lastName: 'ÑOÑO', firstName: 'LUIS' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'ÑOÑO', firstName: 'LUIS' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({ candidateId: 3 });
     });
 
     it('should handle multiple accented characters', () => {
-      const result = matcher.match(
-        { lastName: 'GARCÍA', firstName: 'MARÍA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GARCÍA', firstName: 'MARÍA' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({ candidateId: 2 });
     });
 
     it('should match accented input (JOSÉ) to non-accented pool (JOSE)', () => {
-      const testPool: PatientCandidate[] = [
-        { id: 1, lastName: 'PEREZ', firstName: 'ANDRES' },
-      ];
-      const result = matcher.match(
-        { lastName: 'PÉREZ', firstName: 'ANDRÉS' },
-        'full_name',
-        testPool,
-      );
+      const testPool: PatientCandidate[] = [{ id: 1, lastName: 'PEREZ', firstName: 'ANDRES' }];
+      const result = matcher.match({ lastName: 'PÉREZ', firstName: 'ANDRÉS' }, 'full_name', testPool);
       expect(result.outcome).toBe('auto_linked');
     });
   });
@@ -237,11 +177,7 @@ describe('PatientMatcher', () => {
 
     it('should auto-link single character typo in lastName', () => {
       // GONZALEZ -> GONZALES (one char different)
-      const result = matcher.match(
-        { lastName: 'GONZALES', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALES', firstName: 'MARIA' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
         expect(result.score).toBeGreaterThan(0.92);
@@ -249,11 +185,7 @@ describe('PatientMatcher', () => {
     });
 
     it('should auto-link single character typo in firstName', () => {
-      const result = matcher.match(
-        { lastName: 'SANCHEZ', firstName: 'JUAN' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'SANCHEZ', firstName: 'JUAN' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
         expect(result.score).toBeGreaterThan(0.92);
@@ -281,36 +213,20 @@ describe('PatientMatcher', () => {
     ];
 
     it("should match O'BRIEN to OBRIEN (apostrophe removed)", () => {
-      const testPool: PatientCandidate[] = [
-        { id: 1, lastName: 'OBRIEN', firstName: 'PATRICK' },
-      ];
-      const result = matcher.match(
-        { lastName: "O'BRIEN", firstName: 'PATRICK' },
-        'full_name',
-        testPool,
-      );
+      const testPool: PatientCandidate[] = [{ id: 1, lastName: 'OBRIEN', firstName: 'PATRICK' }];
+      const result = matcher.match({ lastName: "O'BRIEN", firstName: 'PATRICK' }, 'full_name', testPool);
       expect(result.outcome).toBe('auto_linked');
     });
 
     it('should match hyphenated names', () => {
-      const result = matcher.match(
-        { lastName: 'GARCIA-LOPEZ', firstName: 'DIEGO' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GARCIA-LOPEZ', firstName: 'DIEGO' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({ candidateId: 2 });
     });
 
     it('should match hyphenated input to non-hyphenated pool', () => {
-      const testPool: PatientCandidate[] = [
-        { id: 1, lastName: 'GARCIALOPEZ', firstName: 'DIEGO' },
-      ];
-      const result = matcher.match(
-        { lastName: 'GARCIA-LOPEZ', firstName: 'DIEGO' },
-        'full_name',
-        testPool,
-      );
+      const testPool: PatientCandidate[] = [{ id: 1, lastName: 'GARCIALOPEZ', firstName: 'DIEGO' }];
+      const result = matcher.match({ lastName: 'GARCIA-LOPEZ', firstName: 'DIEGO' }, 'full_name', testPool);
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
         expect(result.score).toBeGreaterThan(0.85);
@@ -345,31 +261,21 @@ describe('PatientMatcher', () => {
     ];
 
     it('should auto_link when score >= confidenceThreshold (0.92)', () => {
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
       expect(result.outcome).toBe('auto_linked');
     });
 
     it('should manual_review when score < confidenceThreshold but >= minConsiderationThreshold', () => {
       // Create a candidate that's somewhat similar but not above 0.92
       // e.g., GONZALEZ -> GONZALEC (one char different at end)
-      const customPool: PatientCandidate[] = [
-        { id: 100, lastName: 'GONZALEC', firstName: 'MARIA' },
-      ];
+      const customPool: PatientCandidate[] = [{ id: 100, lastName: 'GONZALEC', firstName: 'MARIA' }];
 
       const matcherLoose = createPatientMatcher({
         confidenceThreshold: 0.95,
         minConsiderationThreshold: 0.75,
       });
 
-      const result = matcherLoose.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        customPool,
-      );
+      const result = matcherLoose.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', customPool);
 
       // Score should be ~0.93, which is >= 0.75 but < 0.95
       if (result.outcome === 'manual_review') {
@@ -380,11 +286,7 @@ describe('PatientMatcher', () => {
     });
 
     it('should no_match when score < minConsiderationThreshold', () => {
-      const result = matcher.match(
-        { lastName: 'XYZABC', firstName: 'DEFGHI' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'XYZABC', firstName: 'DEFGHI' }, 'full_name', pool);
       expect(result.outcome).toBe('no_match');
     });
   });
@@ -396,11 +298,7 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'SANCHEZ', firstName: 'MARITA' }, // Very different last name
       ];
 
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
@@ -410,7 +308,7 @@ describe('PatientMatcher', () => {
 
     it('should manual_review when two candidates are within ambiguityMargin', () => {
       const matcherTight = createPatientMatcher({
-        confidenceThreshold: 0.90,
+        confidenceThreshold: 0.9,
         minConsiderationThreshold: 0.75,
         ambiguityMargin: 0.05,
       });
@@ -420,11 +318,7 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'GARCIA', firstName: 'JOAN' }, // Very similar to JUAN
       ];
 
-      const result = matcherTight.match(
-        { lastName: 'GARCIA', firstName: 'JUAN' },
-        'full_name',
-        pool,
-      );
+      const result = matcherTight.match({ lastName: 'GARCIA', firstName: 'JUAN' }, 'full_name', pool);
 
       // Both should score high, and be close to each other
       if (result.outcome === 'manual_review') {
@@ -437,7 +331,7 @@ describe('PatientMatcher', () => {
 
     it('should respect ambiguityMargin parameter', () => {
       const matcherLargeMargin = createPatientMatcher({
-        confidenceThreshold: 0.90,
+        confidenceThreshold: 0.9,
         minConsiderationThreshold: 0.75,
         ambiguityMargin: 0.1, // Larger margin
       });
@@ -447,17 +341,10 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'GONZALEZ', firstName: 'MARITA' },
       ];
 
-      const result = matcherLargeMargin.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcherLargeMargin.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       // With a larger margin, may escalate to manual_review
-      expect([
-        'auto_linked',
-        'manual_review',
-      ]).toContain(result.outcome);
+      expect(['auto_linked', 'manual_review']).toContain(result.outcome);
     });
   });
 
@@ -466,15 +353,9 @@ describe('PatientMatcher', () => {
     // This is a last_name_only matching scenario
 
     it('should auto_link when exactly one candidate matches strongly', () => {
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'AMADEI', firstName: 'CARLOS' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'AMADEI', firstName: 'CARLOS' }];
 
-      const result = matcher.match(
-        { lastName: 'Amadei', firstName: undefined },
-        'last_name_only',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'Amadei', firstName: undefined }, 'last_name_only', pool);
 
       expect(result.outcome).toBe('auto_linked');
       expect(result).toMatchObject({ candidateId: 1 });
@@ -486,11 +367,7 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'SANCHEZ', firstName: 'MARIA' },
       ];
 
-      const result = matcher.match(
-        { lastName: 'Amadei', firstName: undefined },
-        'last_name_only',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'Amadei', firstName: undefined }, 'last_name_only', pool);
 
       expect(result.outcome).toBe('no_match');
     });
@@ -501,11 +378,7 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'AMADEI', firstName: 'JUAN' },
       ];
 
-      const result = matcher.match(
-        { lastName: 'Amadei', firstName: undefined },
-        'last_name_only',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'Amadei', firstName: undefined }, 'last_name_only', pool);
 
       expect(result.outcome).toBe('manual_review');
       if (result.outcome === 'manual_review') {
@@ -519,15 +392,9 @@ describe('PatientMatcher', () => {
         minConsiderationThreshold: 0.75,
       });
 
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'AMADEI', firstName: 'CARLOS' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'AMADEI', firstName: 'CARLOS' }];
 
-      const result = matcherStrict.match(
-        { lastName: 'AMADEI', firstName: undefined },
-        'last_name_only',
-        pool,
-      );
+      const result = matcherStrict.match({ lastName: 'AMADEI', firstName: undefined }, 'last_name_only', pool);
 
       // AMADEI vs AMADEI is basically 1.0 in Jaro-Winkler, so will be auto_linked
       // even with 0.99 threshold. Let's use a mismatch case instead.
@@ -535,9 +402,7 @@ describe('PatientMatcher', () => {
     });
 
     it('should handle typos in last_name_only mode', () => {
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'AMADEI', firstName: 'CARLOS' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'AMADEI', firstName: 'CARLOS' }];
 
       const result = matcher.match(
         { lastName: 'Amadea', firstName: undefined }, // Typo: AMADEA vs AMADEI
@@ -552,15 +417,9 @@ describe('PatientMatcher', () => {
     });
 
     it('should handle accents in last_name_only mode', () => {
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'GARCÍA', firstName: 'JUAN' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'GARCÍA', firstName: 'JUAN' }];
 
-      const result = matcher.match(
-        { lastName: 'Garcia', firstName: undefined },
-        'last_name_only',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'Garcia', firstName: undefined }, 'last_name_only', pool);
 
       expect(result.outcome).toBe('auto_linked');
     });
@@ -594,14 +453,14 @@ describe('PatientMatcher', () => {
       ];
 
       const matcherLoose = createPatientMatcher({
-        confidenceThreshold: 0.90,
+        confidenceThreshold: 0.9,
         minConsiderationThreshold: 0.75,
       });
 
       const duplicates = matcherLoose.detectDuplicatesInPool(pool);
 
       expect(duplicates.length).toBeGreaterThan(0);
-      expect(duplicates[0].score).toBeGreaterThanOrEqual(0.90);
+      expect(duplicates[0].score).toBeGreaterThanOrEqual(0.9);
     });
 
     it('should not report pairs below confidence threshold', () => {
@@ -617,9 +476,7 @@ describe('PatientMatcher', () => {
     });
 
     it('should return empty array for pool with single candidate', () => {
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' }];
 
       const duplicates = matcher.detectDuplicatesInPool(pool);
 
@@ -663,17 +520,9 @@ describe('PatientMatcher', () => {
         { id: 3, lastName: 'MARTINEZ', firstName: 'CARLOS' },
       ];
 
-      const result1 = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result1 = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
-      const result2 = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result2 = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       expect(result1.outcome).toBe(result2.outcome);
 
@@ -694,17 +543,9 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'SANCHEZ', firstName: 'JUAN' },
       ];
 
-      const result1 = matcherLoose.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIAH' },
-        'full_name',
-        pool,
-      );
+      const result1 = matcherLoose.match({ lastName: 'GONZALEZ', firstName: 'MARIAH' }, 'full_name', pool);
 
-      const result2 = matcherLoose.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIAH' },
-        'full_name',
-        pool,
-      );
+      const result2 = matcherLoose.match({ lastName: 'GONZALEZ', firstName: 'MARIAH' }, 'full_name', pool);
 
       if (result1.outcome === 'manual_review' && result2.outcome === 'manual_review') {
         expect(result1.candidates).toEqual(result2.candidates);
@@ -737,11 +578,7 @@ describe('PatientMatcher', () => {
     it('should match Amadei from inst_turnos (real case)', () => {
       // From sample_dump.sql: inst_turnos.Turno_paciente = 'Amadei'
       // This should be last_name_only and NOT match anyone in the pool
-      const result = matcher.match(
-        { lastName: 'Amadei', firstName: undefined },
-        'last_name_only',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'Amadei', firstName: undefined }, 'last_name_only', pool);
 
       expect(result.outcome).toBe('no_match');
       expect(result.reason).toContain('No candidates found');
@@ -749,11 +586,7 @@ describe('PatientMatcher', () => {
 
     it('should handle AGOSTINI repeated name (from cirugias)', () => {
       // From sample_dump.sql: cirugias.id 4,5,6 all have AGOSTINI, ESTHER DE
-      const result = matcher.match(
-        { lastName: 'AGOSTINI', firstName: 'ESTHER DE' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'AGOSTINI', firstName: 'ESTHER DE' }, 'full_name', pool);
 
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
@@ -762,17 +595,9 @@ describe('PatientMatcher', () => {
     });
 
     it('should distinguish ACOSTA EDELMIRA from ACOSTA ELISA', () => {
-      const result1 = matcher.match(
-        { lastName: 'ACOSTA', firstName: 'EDELMIRA' },
-        'full_name',
-        pool,
-      );
+      const result1 = matcher.match({ lastName: 'ACOSTA', firstName: 'EDELMIRA' }, 'full_name', pool);
 
-      const result2 = matcher.match(
-        { lastName: 'ACOSTA', firstName: 'ELISA ZEIER DE' },
-        'full_name',
-        pool,
-      );
+      const result2 = matcher.match({ lastName: 'ACOSTA', firstName: 'ELISA ZEIER DE' }, 'full_name', pool);
 
       expect(result1.outcome).toBe('auto_linked');
       expect(result2.outcome).toBe('auto_linked');
@@ -784,11 +609,7 @@ describe('PatientMatcher', () => {
     });
 
     it('should handle names with multiple particles DE', () => {
-      const result = matcher.match(
-        { lastName: 'RODRIGUEZ DE SOSA', firstName: 'ILDA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'RODRIGUEZ DE SOSA', firstName: 'ILDA' }, 'full_name', pool);
 
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
@@ -798,11 +619,7 @@ describe('PatientMatcher', () => {
 
     it('should handle names with abbreviated middle initials', () => {
       // ABALLAY has "ANGELA C.DE" in firstName
-      const result = matcher.match(
-        { lastName: 'ABALLAY', firstName: 'ANGELA CDE' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'ABALLAY', firstName: 'ANGELA CDE' }, 'full_name', pool);
 
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
@@ -812,11 +629,7 @@ describe('PatientMatcher', () => {
 
     it('should handle typos in real names', () => {
       // Typo: PEDENERA vs PEDERNERA
-      const result = matcher.match(
-        { lastName: 'PEDENERA', firstName: 'ANGELA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'PEDENERA', firstName: 'ANGELA' }, 'full_name', pool);
 
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
@@ -829,11 +642,7 @@ describe('PatientMatcher', () => {
     it('should handle empty pool', () => {
       const pool: PatientCandidate[] = [];
 
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       expect(result.outcome).toBe('no_match');
     });
@@ -849,11 +658,7 @@ describe('PatientMatcher', () => {
       }
       pool[500] = { id: 500, lastName: 'GONZALEZ', firstName: 'MARIA' };
 
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
@@ -866,11 +671,7 @@ describe('PatientMatcher', () => {
         { id: 1, lastName: 'GONZALEZ' }, // No firstName
       ];
 
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       // When candidate has no firstName but input does, the combined score is:
       // 0.6 * JW(GONZALEZ, GONZALEZ) + 0.4 * JW(MARIA, undefined/empty)
@@ -880,15 +681,9 @@ describe('PatientMatcher', () => {
     });
 
     it('should handle candidate with empty firstName string', () => {
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'GONZALEZ', firstName: '' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'GONZALEZ', firstName: '' }];
 
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       // Same as missing firstName: combined score is 0.6 * 1.0 + 0.4 * 0 = 0.6
       // Below minConsiderationThreshold, so no_match
@@ -896,24 +691,14 @@ describe('PatientMatcher', () => {
     });
 
     it('should handle input with only firstName (no lastName)', () => {
-      const pool: PatientCandidate[] = [
-        { id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' },
-      ];
+      const pool: PatientCandidate[] = [{ id: 1, lastName: 'GONZALEZ', firstName: 'MARIA' }];
 
       // Input has no lastName
-      const result = matcher.match(
-        { lastName: '', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: '', firstName: 'MARIA' }, 'full_name', pool);
 
       // With only firstName input, should likely not match (depending on threshold)
       // But should handle gracefully
-      expect([
-        'auto_linked',
-        'manual_review',
-        'no_match',
-      ]).toContain(result.outcome);
+      expect(['auto_linked', 'manual_review', 'no_match']).toContain(result.outcome);
     });
 
     it('should handle Unicode characters properly', () => {
@@ -922,27 +707,13 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'ÅSTRÖM', firstName: 'ANDERS' },
       ];
 
-      const result1 = matcher.match(
-        { lastName: 'MÜLLER', firstName: 'FRIEDRICH' },
-        'full_name',
-        pool,
-      );
+      const result1 = matcher.match({ lastName: 'MÜLLER', firstName: 'FRIEDRICH' }, 'full_name', pool);
 
-      const result2 = matcher.match(
-        { lastName: 'ÅSTRÖM', firstName: 'ANDERS' },
-        'full_name',
-        pool,
-      );
+      const result2 = matcher.match({ lastName: 'ÅSTRÖM', firstName: 'ANDERS' }, 'full_name', pool);
 
       // Both should find matches (though normalization might change the characters)
-      expect([
-        'auto_linked',
-        'manual_review',
-      ]).toContain(result1.outcome);
-      expect([
-        'auto_linked',
-        'manual_review',
-      ]).toContain(result2.outcome);
+      expect(['auto_linked', 'manual_review']).toContain(result1.outcome);
+      expect(['auto_linked', 'manual_review']).toContain(result2.outcome);
     });
   });
 
@@ -953,11 +724,7 @@ describe('PatientMatcher', () => {
         { id: 2, lastName: 'GONZALEZ', firstName: 'JUAN' },
       ];
 
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       // Should match id=1 because lastName matches and firstName is part of the weighting
       expect(result.outcome).toBe('auto_linked');
@@ -971,16 +738,12 @@ describe('PatientMatcher', () => {
         { id: 1, lastName: 'GONZALEZ', firstName: 'MARIAH' }, // Partial firstName match
       ];
 
-      const result = matcher.match(
-        { lastName: 'GONZALEZ', firstName: 'MARIA' },
-        'full_name',
-        pool,
-      );
+      const result = matcher.match({ lastName: 'GONZALEZ', firstName: 'MARIA' }, 'full_name', pool);
 
       // Score should still be high due to 60% weight on lastName (perfect match)
       expect(result.outcome).toBe('auto_linked');
       if (result.outcome === 'auto_linked') {
-        expect(result.score).toBeGreaterThan(0.90);
+        expect(result.score).toBeGreaterThan(0.9);
       }
     });
   });

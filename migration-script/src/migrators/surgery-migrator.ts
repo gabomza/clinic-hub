@@ -383,11 +383,13 @@ export function createSurgeryMigrator(): SurgeryMigrator {
               RETURNING id
             `;
 
-            const surgeryResult = await client.query<{ id: number }>(
-              tx,
-              insertSurgerySql,
-              [patientId, dateStr, diagnosisId, bodyPartId, outcome],
-            );
+            const surgeryResult = await client.query<{ id: number }>(tx, insertSurgerySql, [
+              patientId,
+              dateStr,
+              diagnosisId,
+              bodyPartId,
+              outcome,
+            ]);
 
             if (surgeryResult.length === 0) {
               throw new Error('INSERT into surgeries returned no rows');
@@ -482,10 +484,13 @@ async function populateLookupTable(
 ): Promise<void> {
   // Determine the name column based on table
   const nameColumn =
-    table === 'surgery_diagnoses' ? 'diagnosis' :
-    table === 'body_parts' ? 'body_part' :
-    table === 'surgery_techniques' ? 'technique' :
-    'name';
+    table === 'surgery_diagnoses'
+      ? 'diagnosis'
+      : table === 'body_parts'
+        ? 'body_part'
+        : table === 'surgery_techniques'
+          ? 'technique'
+          : 'name';
 
   for (const value of values) {
     try {
@@ -520,9 +525,7 @@ async function populateLookupTable(
       } else {
         // Insert new entry
         const insertQuery = `INSERT INTO ${table} (${nameColumn}) VALUES ($1) RETURNING id`;
-        const insertResult = await client.query<{ id: number }>(tx, insertQuery, [
-          value,
-        ]);
+        const insertResult = await client.query<{ id: number }>(tx, insertQuery, [value]);
 
         if (insertResult.length > 0) {
           const newId = insertResult[0].id;

@@ -4,11 +4,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool, PoolClient } from 'pg';
-import {
-  createPostgresClient,
-  createMigrationLogStore,
-  PostgresClient,
-} from '../index';
+import { createPostgresClient, createMigrationLogStore, PostgresClient } from '../index';
 import { MigrationLogStore } from '../migration-log';
 
 describe('MigrationLogStore', () => {
@@ -19,8 +15,7 @@ describe('MigrationLogStore', () => {
 
   beforeAll(async () => {
     const connectionString =
-      process.env.TEST_DATABASE_URL ||
-      'postgresql://postgres:postgres@localhost:5432/migration_test';
+      process.env.TEST_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/migration_test';
 
     postgresClient = createPostgresClient({
       connectionString,
@@ -84,13 +79,10 @@ describe('MigrationLogStore', () => {
          WHERE table_name = 'migration_log' ORDER BY ordinal_position`,
       );
 
-      const columns = result.rows.reduce(
-        (acc: Record<string, unknown>, row) => {
-          acc[row.column_name] = { type: row.data_type, nullable: row.is_nullable };
-          return acc;
-        },
-        {},
-      );
+      const columns = result.rows.reduce((acc: Record<string, unknown>, row) => {
+        acc[row.column_name] = { type: row.data_type, nullable: row.is_nullable };
+        return acc;
+      }, {});
 
       expect(columns).toHaveProperty('id');
       expect(columns).toHaveProperty('source_table');
@@ -117,10 +109,10 @@ describe('MigrationLogStore', () => {
 
       await store.record(pool, entry);
 
-      const result = await pool.query(
-        'SELECT * FROM migration_log WHERE source_table = $1 AND source_pk = $2',
-        ['fichas', '42'],
-      );
+      const result = await pool.query('SELECT * FROM migration_log WHERE source_table = $1 AND source_pk = $2', [
+        'fichas',
+        '42',
+      ]);
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].target_id).toBe('100');
@@ -141,10 +133,7 @@ describe('MigrationLogStore', () => {
 
       await store.record(pool, entry);
 
-      const result = await pool.query(
-        'SELECT * FROM migration_log WHERE source_table = $1',
-        ['historiaclinica'],
-      );
+      const result = await pool.query('SELECT * FROM migration_log WHERE source_table = $1', ['historiaclinica']);
 
       expect(result.rows[0].target_id).toBeNull();
       expect(result.rows[0].status).toBe('excluded');
@@ -163,10 +152,7 @@ describe('MigrationLogStore', () => {
 
       await store.record(pool, entry);
 
-      const result = await pool.query(
-        'SELECT * FROM migration_log WHERE source_pk = $1',
-        ['99'],
-      );
+      const result = await pool.query('SELECT * FROM migration_log WHERE source_pk = $1', ['99']);
 
       expect(result.rows[0].status).toBe('warning');
     });
@@ -195,10 +181,7 @@ describe('MigrationLogStore', () => {
       await store.record(pool, entry1);
       await store.record(pool, entry2);
 
-      const result = await pool.query(
-        'SELECT * FROM migration_log WHERE source_pk = $1',
-        ['50'],
-      );
+      const result = await pool.query('SELECT * FROM migration_log WHERE source_pk = $1', ['50']);
 
       expect(result.rows).toHaveLength(1); // Only one row, not duplicated
       expect(result.rows[0].target_id).toBe('151'); // Updated to new value
@@ -295,9 +278,7 @@ describe('MigrationLogStore', () => {
       });
 
       // Verify data was inserted
-      const count = await pool.query(
-        'SELECT COUNT(*) FROM migration_log',
-      );
+      const count = await pool.query('SELECT COUNT(*) FROM migration_log');
       expect(parseInt(count.rows[0].count)).toBe(2);
     });
 
@@ -318,24 +299,17 @@ describe('MigrationLogStore', () => {
       `);
 
       // Insert a row in patients
-      await pool.query(
-        'INSERT INTO patients (name) VALUES ($1)',
-        ['Test Patient'],
-      );
+      await pool.query('INSERT INTO patients (name) VALUES ($1)', ['Test Patient']);
 
       // Reset with full scope
       await store.reset(pool, 'full');
 
       // migration_log should be empty
-      const logCount = await pool.query(
-        'SELECT COUNT(*) FROM migration_log',
-      );
+      const logCount = await pool.query('SELECT COUNT(*) FROM migration_log');
       expect(parseInt(logCount.rows[0].count)).toBe(0);
 
       // patients table should be empty (truncated)
-      const patientsCount = await pool.query(
-        'SELECT COUNT(*) FROM patients',
-      );
+      const patientsCount = await pool.query('SELECT COUNT(*) FROM patients');
       expect(parseInt(patientsCount.rows[0].count)).toBe(0);
 
       // Clean up
@@ -343,9 +317,7 @@ describe('MigrationLogStore', () => {
     });
 
     it('should throw on invalid reset scope', async () => {
-      await expect(
-        store.reset(pool, 'invalid' as any),
-      ).rejects.toThrow('Unknown reset scope');
+      await expect(store.reset(pool, 'invalid' as any)).rejects.toThrow('Unknown reset scope');
     });
   });
 
@@ -435,10 +407,10 @@ describe('MigrationLogStore', () => {
       // (because we use ON CONFLICT DO UPDATE)
       await expect(store.record(pool, entry)).resolves.not.toThrow();
 
-      const result = await pool.query(
-        'SELECT COUNT(*) FROM migration_log WHERE source_table = $1 AND source_pk = $2',
-        ['fichas', 'unique-test-1'],
-      );
+      const result = await pool.query('SELECT COUNT(*) FROM migration_log WHERE source_table = $1 AND source_pk = $2', [
+        'fichas',
+        'unique-test-1',
+      ]);
       expect(parseInt(result.rows[0].count)).toBe(1); // Only one row
     });
 

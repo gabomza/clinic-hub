@@ -78,7 +78,7 @@ describe('Synthetic Fixture Generator', () => {
       expect(cajaMatches).not.toBeNull();
 
       console.log(
-        `[FIXTURE TEST] Custom config generated ${fichasMatches?.length || 0} fichas INSERTs (100 rows total)`
+        `[FIXTURE TEST] Custom config generated ${fichasMatches?.length || 0} fichas INSERTs (100 rows total)`,
       );
     });
 
@@ -146,10 +146,7 @@ describe('Synthetic Fixture Generator', () => {
       const dump = generateSyntheticMysqlDump({ fichasCount: 50 });
 
       const tmpDir = os.tmpdir();
-      const tmpFile = path.join(
-        tmpDir,
-        `test-dump-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`
-      );
+      const tmpFile = path.join(tmpDir, `test-dump-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
 
       try {
         // Write dump to file
@@ -248,7 +245,7 @@ describe('Synthetic Fixture Generator', () => {
         dates.map((d) => {
           const yearMatch = d.match(/\d{4}/);
           return yearMatch ? yearMatch[0] : '0000';
-        })
+        }),
       );
       console.log(`[FIXTURE TEST] Date range in generated data: ${Array.from(years).sort().join(', ')}`);
 
@@ -278,9 +275,7 @@ describe('Synthetic Fixture Generator', () => {
           }
         }
 
-        console.log(
-          `[FIXTURE TEST] Generated cash entries: ${incomeCount} income, ${expenseCount} expense`
-        );
+        console.log(`[FIXTURE TEST] Generated cash entries: ${incomeCount} income, ${expenseCount} expense`);
 
         // Should have both income and expense entries (randomly distributed)
         // At least some of each is expected from random generation

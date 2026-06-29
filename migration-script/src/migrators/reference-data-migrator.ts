@@ -72,10 +72,7 @@ export type ReferenceDataMigrator = {
     logStore: MigrationLogStore,
   ): Promise<MigrationResult>;
 
-  verifySchedules(
-    scheduleRows: ScheduleRow[],
-    client: PostgresClient,
-  ): Promise<MigrationResult>;
+  verifySchedules(scheduleRows: ScheduleRow[], client: PostgresClient): Promise<MigrationResult>;
 };
 
 /**
@@ -160,11 +157,7 @@ async function migrateReferenceTable(
           result.reused++;
         } else {
           // Insert with explicit id
-          await client.query(
-            tx,
-            `INSERT INTO ${targetTable} (id, name) VALUES ($1, $2)`,
-            [sourceId, sourceName],
-          );
+          await client.query(tx, `INSERT INTO ${targetTable} (id, name) VALUES ($1, $2)`, [sourceId, sourceName]);
 
           await logStore.record(tx, {
             sourceTable,
@@ -209,10 +202,7 @@ async function migrateReferenceTable(
  * Requirement 1.4, 1.5: Check Horarios_id exists in schedules,
  * validate Horarios_estado ∈ {0, 1, 2}
  */
-async function verifySchedulesImpl(
-  scheduleRows: ScheduleRow[],
-  client: PostgresClient,
-): Promise<MigrationResult> {
+async function verifySchedulesImpl(scheduleRows: ScheduleRow[], client: PostgresClient): Promise<MigrationResult> {
   const result: MigrationResult = {
     inserted: 0,
     reused: 0,
@@ -239,11 +229,7 @@ async function verifySchedulesImpl(
       }
 
       // Check if schedule exists
-      const existing = await client.query<{ id: number }>(
-        tx,
-        `SELECT id FROM schedules WHERE id = $1`,
-        [scheduleId],
-      );
+      const existing = await client.query<{ id: number }>(tx, `SELECT id FROM schedules WHERE id = $1`, [scheduleId]);
 
       if (existing.length === 0) {
         result.warnings.push({
@@ -270,13 +256,7 @@ export function createReferenceDataMigrator(): ReferenceDataMigrator {
       client: PostgresClient,
       logStore: MigrationLogStore,
     ): Promise<MigrationResult> {
-      return migrateReferenceTable(
-        'inst_doctor',
-        'doctors',
-        doctorRows,
-        client,
-        logStore,
-      );
+      return migrateReferenceTable('inst_doctor', 'doctors', doctorRows, client, logStore);
     },
 
     async migrateHealthInsurances(
@@ -284,13 +264,7 @@ export function createReferenceDataMigrator(): ReferenceDataMigrator {
       client: PostgresClient,
       logStore: MigrationLogStore,
     ): Promise<MigrationResult> {
-      return migrateReferenceTable(
-        'inst_obrasoc',
-        'health_insurances',
-        rows,
-        client,
-        logStore,
-      );
+      return migrateReferenceTable('inst_obrasoc', 'health_insurances', rows, client, logStore);
     },
 
     async migrateVisitReasons(
@@ -298,19 +272,10 @@ export function createReferenceDataMigrator(): ReferenceDataMigrator {
       client: PostgresClient,
       logStore: MigrationLogStore,
     ): Promise<MigrationResult> {
-      return migrateReferenceTable(
-        'inst_motivo',
-        'visit_reasons',
-        rows,
-        client,
-        logStore,
-      );
+      return migrateReferenceTable('inst_motivo', 'visit_reasons', rows, client, logStore);
     },
 
-    async verifySchedules(
-      scheduleRows: ScheduleRow[],
-      client: PostgresClient,
-    ): Promise<MigrationResult> {
+    async verifySchedules(scheduleRows: ScheduleRow[], client: PostgresClient): Promise<MigrationResult> {
       return verifySchedulesImpl(scheduleRows, client);
     },
   };
