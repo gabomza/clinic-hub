@@ -1,85 +1,44 @@
-# Convenciones de Código - Fichas Project
+# Code Conventions - clinic-hub Project
 
-Reglas que aplican a todo el proyecto (migration-script, Next.js app, y otros módulos).
-
-## TypeScript Types vs Interfaces
-
-**Regla:** Usar `type` en lugar de `interface`, excepto cuando sea necesario extender.
-
-**Justificación:** `type` es más flexible y consistente para definiciones de formas de datos.
-
-**Excepción:** Si una definición necesita ser extendida por otra (usando `extends`), usar `interface`.
-
-**Ejemplos:**
-
-```typescript
-// ✅ Usar type (no se extiende)
-export type RawRow = Record<string, string | number | null>;
-export type MigrationConfig = {
-  dumpFilePath: string;
-  databaseUrl: string;
-};
-
-// ✅ Usar interface (se extiende)
-export interface BaseEntity {
-  id: number;
-  createdAt: Date;
-}
-
-export interface Patient extends BaseEntity {
-  name: string;
-}
-```
+Rules that apply to the entire project (migration-script, Next.js app, and other modules).
 
 ---
 
-## Organización de Módulos
+## 🧠 Intent Classification Protocol (Kiro IDE Mode)
 
-**Regla:** Los archivos `index.ts` en carpetas de módulos deben contener SOLO imports y re-exports. Ninguna lógica o definiciones de tipos debe vivir allí.
+For every prompt, analyze my underlying intent before writing code. Determine if I am asking for an informal change or an architectural expansion. Route your response according to these two modes:
 
-**Estructura esperada:**
+### 🚀 Mode A: Vibe Coding (Informal/Iterative Changes)
 
-```
-src/config/
-├── index.ts           # Solo re-exports
-├── loader.ts          # Lógica de loadConfig + validación
-└── __tests__/
-    └── config.test.ts
+- **Trigger:** Small feature updates, quick styling changes, localized debugging, refactoring, or iterative prompt-tweaking.
+- **Behavior:** Jump straight into editing the codebase. Do not require planning paperwork. Keep a rapid, highly conversational loop. Implement the requested edits immediately in the file tree while adhering to the project's documentation.
 
-src/parser/
-├── index.ts           # Solo re-exports
-├── dump.ts            # Lógica del parser
-└── __tests__/
-    └── parser.test.ts
-```
+### 📝 Mode B: SDD (Specification-Driven Development)
 
-**Ejemplo de index.ts correcto:**
+- **Trigger:** Creation of a new feature from scratch, major architectural modifications, changes cutting across multiple modules, or requests that explicitly mention "spec", "plan", or "docs".
+- **Behavior:** **HALT code execution immediately.** Execute the following SDD workflow before a single line of application code is touched:
+  1. Check for the existence of a `docs/specs/` directory or a `.docs/` directory. Create it if missing.
+  2. Draft or update a markdown architecture specification file mapping out the exact components, API boundaries, and data flow.
+  3. Present this specification draft to me inside the chat panel.
+  4. Wait for explicit user confirmation (e.g., "Looks good, implement it") before proceeding to generate the actual codebase files.
 
-```typescript
-// src/config/index.ts
-export type { MigrationConfig } from './loader';
-export { loadConfig } from './loader';
-```
+#### Parallel Agents Configuration for SDD Tasks:
 
-**Ventajas:**
-- Separación clara de responsabilidades
-- Facilita navegar la estructura del código
-- Permite reasignaciones de archivos sin cambiar imports externos
-- Los index.ts actúan como puertos públicos bien definidos
+- **Default Count:** 1 agent (recommended for controlled iteration, better change auditing, and consistency in the SDD workflow).
+- **Scope:** Apply to `spec-requirements`, `spec-design`, `spec-tasks`, and `spec-impl`.
+- **Exception:** Only use multiple agents (3+) if explicitly requested for a specific task.
 
 ---
 
----
+## 📚 Extended Reference Documentation
 
-## Preferencias de Spec-Driven Development
+When executing tasks, look up and read from these deep-dive files for specific implementation blueprints:
 
-**Agents paralelos para tareas de especificación:** 1 (recomendado)
-- Razón: iteración controlada, mejor auditoría de cambios, consistencia en el workflow SDD
-- Aplicar a: `spec-requirements`, `spec-design`, `spec-tasks`, `spec-impl`
-- Excepción: solo usar múltiples agentes (3+) si el usuario lo pide explícitamente para una tarea
+- **Coding Style & Patterns:** `docs/CODING_STANDARDS.md`
+- **Folder & Module Architecture:** `docs/MODULE_ORGANIZATION.md`
 
 ---
 
-## Cómo Contribuir
+## How to Contribute
 
-Cuando descubras una nueva convención o patrón que deba aplicarse globalmente, actualiza este archivo. Las convenciones evolucionan según aprendemos más sobre el proyecto.
+When you discover a new convention or pattern that should be applied globally, update the relevant file in the `docs/` folder or edit this main file. Conventions evolve as we learn more about the project.
