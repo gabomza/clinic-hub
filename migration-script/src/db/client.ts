@@ -30,22 +30,13 @@ export type PostgresClient = {
    * Constructs a parametrized INSERT with multi-VALUES syntax.
    * Respects insertBatchSize for large row sets.
    */
-  insertBatch(
-    client: PoolClient | Pool,
-    table: string,
-    columns: string[],
-    rows: unknown[][],
-  ): Promise<void>;
+  insertBatch(client: PoolClient | Pool, table: string, columns: string[], rows: unknown[][]): Promise<void>;
 
   /**
    * Execute a SELECT query with type safety.
    * Returns an array of rows matching the generic type.
    */
-  query<T>(
-    client: PoolClient | Pool,
-    sql: string,
-    params?: unknown[],
-  ): Promise<T[]>;
+  query<T>(client: PoolClient | Pool, sql: string, params?: unknown[]): Promise<T[]>;
 
   /** Close the connection pool */
   close(): Promise<void>;
@@ -62,14 +53,10 @@ export type PostgresClientWithPool = PostgresClient & {
  * Create a PostgreSQL client instance.
  * Validates configuration and initializes the pool.
  */
-export function createPostgresClient(
-  config: PostgresClientConfig,
-): PostgresClientWithPool {
+export function createPostgresClient(config: PostgresClientConfig): PostgresClientWithPool {
   // Fail-fast validation
   if (!config.connectionString || config.connectionString.trim() === '') {
-    throw new Error(
-      'PostgresClientConfig.connectionString must not be empty',
-    );
+    throw new Error('PostgresClientConfig.connectionString must not be empty');
   }
 
   if (config.maxPoolSize !== undefined && config.maxPoolSize < 1) {
@@ -88,9 +75,7 @@ export function createPostgresClient(
   });
 
   return {
-    async withTransaction<T>(
-      fn: (client: PoolClient) => Promise<T>,
-    ): Promise<T> {
+    async withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
       const client = await pool.connect();
       try {
         await (client as any).query('BEGIN');
@@ -105,12 +90,7 @@ export function createPostgresClient(
       }
     },
 
-    async insertBatch(
-      client: PoolClient | Pool,
-      table: string,
-      columns: string[],
-      rows: unknown[][],
-    ): Promise<void> {
+    async insertBatch(client: PoolClient | Pool, table: string, columns: string[], rows: unknown[][]): Promise<void> {
       if (rows.length === 0) {
         return;
       }
@@ -135,11 +115,7 @@ export function createPostgresClient(
       await (client as any).query(sql, params);
     },
 
-    async query<T>(
-      client: PoolClient | Pool,
-      sql: string,
-      params?: unknown[],
-    ): Promise<T[]> {
+    async query<T>(client: PoolClient | Pool, sql: string, params?: unknown[]): Promise<T[]> {
       const result = await (client as any).query(sql, params);
       return result.rows as T[];
     },

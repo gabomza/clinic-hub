@@ -16,11 +16,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PoolClient } from 'pg';
-import {
-  createCashEntryMigrator,
-  CashEntryRow,
-  CashEntryMigrationResult,
-} from '../cash-entry-migrator';
+import { createCashEntryMigrator, CashEntryRow, CashEntryMigrationResult } from '../cash-entry-migrator';
 import { PostgresClient, calculatePayloadHash } from '../../db/client';
 import { MigrationLogStore, MigrationLogEntry } from '../../db/migration-log';
 

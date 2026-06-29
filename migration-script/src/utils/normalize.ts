@@ -49,10 +49,7 @@ export interface NormalizeOptions {
  * normalizeText("test", { preserveCase: true })  // → "test"
  * normalizeText("O'Brien", { removePunctuation: false }) // → "O'BRIEN"
  */
-export function normalizeText(
-  text: string | null | undefined,
-  options?: NormalizeOptions,
-): string {
+export function normalizeText(text: string | null | undefined, options?: NormalizeOptions): string {
   // Handle null/undefined: throw error for safety
   if (text == null) {
     throw new Error('normalizeText: input text must be a string, not null or undefined');
@@ -62,11 +59,7 @@ export function normalizeText(
     throw new Error(`normalizeText: input must be a string, got ${typeof text}`);
   }
 
-  const {
-    preserveCase = false,
-    removePunctuation = true,
-    collapseWhitespace = true,
-  } = options ?? {};
+  const { preserveCase = false, removePunctuation = true, collapseWhitespace = true } = options ?? {};
 
   let result = text;
 
@@ -89,7 +82,7 @@ export function normalizeText(
     const code = result.charCodeAt(i);
 
     // Keep non-combining characters (outside Unicode combining diacriticals range U+0300-U+036F)
-    if (code < 0x0300 || code > 0x036F) {
+    if (code < 0x0300 || code > 0x036f) {
       chars.push(result[i]);
     }
     // Special case: preserve combining tilde (U+0303) after N for Ñ

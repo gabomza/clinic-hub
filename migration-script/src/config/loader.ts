@@ -71,9 +71,7 @@ function parseCliArgs(argv: string[]): Map<string, string> {
  */
 function validateThreshold(value: number, name: string): void {
   if (Number.isNaN(value) || value < 0 || value > 1) {
-    throw new Error(
-      `${name} debe estar en el rango [0, 1]. Valor proporcionado: ${value}`
-    );
+    throw new Error(`${name} debe estar en el rango [0, 1]. Valor proporcionado: ${value}`);
   }
 }
 
@@ -92,57 +90,39 @@ function validateConfig(config: MigrationConfig): void {
   }
 
   // Validate thresholds
-  validateThreshold(
-    config.matchConfidenceThreshold,
-    'matchConfidenceThreshold'
-  );
-  validateThreshold(
-    config.matchMinConsiderationThreshold,
-    'matchMinConsiderationThreshold'
-  );
+  validateThreshold(config.matchConfidenceThreshold, 'matchConfidenceThreshold');
+  validateThreshold(config.matchMinConsiderationThreshold, 'matchMinConsiderationThreshold');
 
   // Validate threshold relationship
-  if (
-    config.matchMinConsiderationThreshold >
-    config.matchConfidenceThreshold
-  ) {
+  if (config.matchMinConsiderationThreshold > config.matchConfidenceThreshold) {
     throw new Error(
       `matchMinConsiderationThreshold (${config.matchMinConsiderationThreshold}) ` +
-      `no puede ser mayor a matchConfidenceThreshold (${config.matchConfidenceThreshold})`
+        `no puede ser mayor a matchConfidenceThreshold (${config.matchConfidenceThreshold})`,
     );
   }
 
   // Validate batch size
   if (config.insertBatchSize < 1) {
-    throw new Error(
-      `insertBatchSize debe ser >= 1. Valor proporcionado: ${config.insertBatchSize}`
-    );
+    throw new Error(`insertBatchSize debe ser >= 1. Valor proporcionado: ${config.insertBatchSize}`);
   }
 
   // Validate reset mode
   if (!['log-only', 'full'].includes(config.resetMode)) {
-    throw new Error(
-      `resetMode debe ser 'log-only' o 'full'. Valor proporcionado: ${config.resetMode}`
-    );
+    throw new Error(`resetMode debe ser 'log-only' o 'full'. Valor proporcionado: ${config.resetMode}`);
   }
 }
 
 /**
  * Converts a string value to a number, with fallback to default
  */
-function parseNumber(
-  value: string | undefined,
-  defaultValue: number
-): number {
+function parseNumber(value: string | undefined, defaultValue: number): number {
   if (value === undefined || value === '') {
     return defaultValue;
   }
 
   const parsed = parseFloat(value);
   if (Number.isNaN(parsed)) {
-    throw new Error(
-      `No se puede convertir a número: "${value}"`
-    );
+    throw new Error(`No se puede convertir a número: "${value}"`);
   }
 
   return parsed;
@@ -151,19 +131,14 @@ function parseNumber(
 /**
  * Converts a string value to an integer, with fallback to default
  */
-function parseInteger(
-  value: string | undefined,
-  defaultValue: number
-): number {
+function parseInteger(value: string | undefined, defaultValue: number): number {
   if (value === undefined || value === '') {
     return defaultValue;
   }
 
   const parsed = parseInt(value, 10);
   if (Number.isNaN(parsed)) {
-    throw new Error(
-      `No se puede convertir a entero: "${value}"`
-    );
+    throw new Error(`No se puede convertir a entero: "${value}"`);
   }
 
   return parsed;
@@ -182,56 +157,37 @@ function parseInteger(
  * @returns Validated MigrationConfig object
  * @throws Error if validation fails (fail-fast strategy)
  */
-export function loadConfig(
-  argv: string[] = [],
-  env: NodeJS.ProcessEnv = {}
-): MigrationConfig {
+export function loadConfig(argv: string[] = [], env: NodeJS.ProcessEnv = {}): MigrationConfig {
   const cliArgs = parseCliArgs(argv);
 
   // Load dumpFilePath
-  const dumpFilePath =
-    cliArgs.get('dump-file') ||
-    env.DUMP_FILE_PATH ||
-    '';
+  const dumpFilePath = cliArgs.get('dump-file') || env.DUMP_FILE_PATH || '';
 
   // Load databaseUrl
-  const databaseUrl =
-    cliArgs.get('database-url') ||
-    env.DATABASE_URL ||
-    '';
+  const databaseUrl = cliArgs.get('database-url') || env.DATABASE_URL || '';
 
   // Load matchConfidenceThreshold
   const matchConfidenceThreshold = parseNumber(
-    cliArgs.get('match-threshold') ||
-    env.MATCH_CONFIDENCE_THRESHOLD,
-    DEFAULT_CONFIG.matchConfidenceThreshold
+    cliArgs.get('match-threshold') || env.MATCH_CONFIDENCE_THRESHOLD,
+    DEFAULT_CONFIG.matchConfidenceThreshold,
   );
 
   // Load matchMinConsiderationThreshold
   const matchMinConsiderationThreshold = parseNumber(
-    cliArgs.get('match-min-threshold') ||
-    env.MATCH_MIN_CONSIDERATION_THRESHOLD,
-    DEFAULT_CONFIG.matchMinConsiderationThreshold
+    cliArgs.get('match-min-threshold') || env.MATCH_MIN_CONSIDERATION_THRESHOLD,
+    DEFAULT_CONFIG.matchMinConsiderationThreshold,
   );
 
   // Load resetMode
-  const resetMode = (
-    cliArgs.get('reset') ||
-    env.RESET_MODE ||
-    DEFAULT_CONFIG.resetMode
-  ) as 'log-only' | 'full';
+  const resetMode = (cliArgs.get('reset') || env.RESET_MODE || DEFAULT_CONFIG.resetMode) as 'log-only' | 'full';
 
   // Load reportOutputDir
-  const reportOutputDir =
-    cliArgs.get('report-output-dir') ||
-    env.REPORT_OUTPUT_DIR ||
-    DEFAULT_CONFIG.reportOutputDir;
+  const reportOutputDir = cliArgs.get('report-output-dir') || env.REPORT_OUTPUT_DIR || DEFAULT_CONFIG.reportOutputDir;
 
   // Load insertBatchSize
   const insertBatchSize = parseInteger(
-    cliArgs.get('insert-batch-size') ||
-    env.INSERT_BATCH_SIZE,
-    DEFAULT_CONFIG.insertBatchSize
+    cliArgs.get('insert-batch-size') || env.INSERT_BATCH_SIZE,
+    DEFAULT_CONFIG.insertBatchSize,
   );
 
   const config: MigrationConfig = {

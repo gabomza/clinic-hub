@@ -29,30 +29,20 @@ export type MigrationLogStore = {
    * Find an existing migration log entry by source table and primary key.
    * Returns null if not found.
    */
-  findExisting(
-    client: PoolClient | Pool,
-    sourceTable: string,
-    sourcePk: string,
-  ): Promise<MigrationLogEntry | null>;
+  findExisting(client: PoolClient | Pool, sourceTable: string, sourcePk: string): Promise<MigrationLogEntry | null>;
 
   /**
    * Record a migration result (new entry or update).
    * Throws if a unique constraint violation occurs (duplicate source_table, source_pk).
    */
-  record(
-    client: PoolClient | Pool,
-    entry: MigrationLogEntry,
-  ): Promise<void>;
+  record(client: PoolClient | Pool, entry: MigrationLogEntry): Promise<void>;
 
   /**
    * Reset the migration log.
    * 'log-only': truncate only migration_log
    * 'full': truncate migration_log and clear target tables (requires schema knowledge)
    */
-  reset(
-    client: PoolClient | Pool,
-    scope: 'log-only' | 'full',
-  ): Promise<void>;
+  reset(client: PoolClient | Pool, scope: 'log-only' | 'full'): Promise<void>;
 };
 
 const MIGRATION_LOG_DDL = `
@@ -75,9 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_migration_log_lookup
 /**
  * Create a migration log store backed by PostgreSQL.
  */
-export function createMigrationLogStore(
-  _client: PostgresClient,
-): MigrationLogStore {
+export function createMigrationLogStore(_client: PostgresClient): MigrationLogStore {
   return {
     async ensureSchema(client: PoolClient | Pool): Promise<void> {
       // Split DDL into separate statements and execute each
@@ -121,10 +109,7 @@ export function createMigrationLogStore(
       };
     },
 
-    async record(
-      client: PoolClient | Pool,
-      entry: MigrationLogEntry,
-    ): Promise<void> {
+    async record(client: PoolClient | Pool, entry: MigrationLogEntry): Promise<void> {
       await (client as any).query(
         `
         INSERT INTO migration_log (source_table, source_pk, target_table, target_id, status, payload_hash)
@@ -135,21 +120,11 @@ export function createMigrationLogStore(
           payload_hash = $6,
           migrated_at = CURRENT_TIMESTAMP
       `,
-        [
-          entry.sourceTable,
-          entry.sourcePk,
-          entry.targetTable,
-          entry.targetId,
-          entry.status,
-          entry.payloadHash,
-        ],
+        [entry.sourceTable, entry.sourcePk, entry.targetTable, entry.targetId, entry.status, entry.payloadHash],
       );
     },
 
-    async reset(
-      client: PoolClient | Pool,
-      scope: 'log-only' | 'full',
-    ): Promise<void> {
+    async reset(client: PoolClient | Pool, scope: 'log-only' | 'full'): Promise<void> {
       if (scope === 'log-only') {
         await (client as any).query('TRUNCATE TABLE migration_log');
       } else if (scope === 'full') {

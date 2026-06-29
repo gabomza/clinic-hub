@@ -79,12 +79,13 @@ export type MigrationReport = {
 export type ReportBuilder = {
   addTableSummary(summary: TableMigrationSummary): void;
   addExcludedTable(name: string, reason: string): void;
-  addDuplicatePatientPairs(
-    pairs: Array<{ candidates: string[]; score: number }>,
-  ): void;
+  addDuplicatePatientPairs(pairs: Array<{ candidates: string[]; score: number }>): void;
   addAuditEvent(event: AuditEvent): void;
   build(runStartedAt: Date): MigrationReport;
-  writeToDisk(report: MigrationReport, reportDir: string): Promise<{
+  writeToDisk(
+    report: MigrationReport,
+    reportDir: string,
+  ): Promise<{
     jsonPath: string;
     mdPath: string;
   }>;
@@ -107,10 +108,7 @@ export function createReportBuilder(): ReportBuilder {
   // Categorized events for quick lookup
   const errorEvents: AuditEvent[] = [];
   const warningEvents: AuditEvent[] = [];
-  const patientMatchingEvents: Map<
-    'auto_linked' | 'manual_review' | 'no_match',
-    AuditEvent[]
-  > = new Map([
+  const patientMatchingEvents: Map<'auto_linked' | 'manual_review' | 'no_match', AuditEvent[]> = new Map([
     ['auto_linked', []],
     ['manual_review', []],
     ['no_match', []],
@@ -136,9 +134,7 @@ export function createReportBuilder(): ReportBuilder {
    * Register possible duplicate patient pairs detected in destination.
    * Requirement 8.4 (part of patientMatching)
    */
-  function addDuplicatePatientPairs(
-    pairs: Array<{ candidates: string[]; score: number }>,
-  ): void {
+  function addDuplicatePatientPairs(pairs: Array<{ candidates: string[]; score: number }>): void {
     duplicatePairsList.push(...pairs);
   }
 
@@ -207,8 +203,7 @@ export function createReportBuilder(): ReportBuilder {
     outcome: 'auto_linked' | 'manual_review' | 'no_match',
     events: AuditEvent[],
   ): PatientMatchResult {
-    const examples: Array<{ sourceName: string; score?: number; candidates?: string[] }> =
-      [];
+    const examples: Array<{ sourceName: string; score?: number; candidates?: string[] }> = [];
 
     // Limit examples to avoid bloating report (up to 10 examples per outcome)
     const exampleCount = Math.min(10, events.length);
@@ -222,10 +217,7 @@ export function createReportBuilder(): ReportBuilder {
         example.score = event.details.score as number;
       }
 
-      if (
-        (outcome === 'manual_review' || outcome === 'no_match') &&
-        event.details?.candidates
-      ) {
+      if ((outcome === 'manual_review' || outcome === 'no_match') && event.details?.candidates) {
         example.candidates = event.details.candidates as string[];
       }
 
@@ -345,10 +337,7 @@ export function renderMarkdownReport(report: MigrationReport): string {
   lines.push('');
 
   // Summary statistics
-  const totalMigrated = Object.values(report.summaryByTable).reduce(
-    (sum, s) => sum + s.migrated,
-    0,
-  );
+  const totalMigrated = Object.values(report.summaryByTable).reduce((sum, s) => sum + s.migrated, 0);
   const totalErrors = report.errors.length;
   const totalWarnings = report.warnings.length;
   lines.push(`**Summary:** ${totalMigrated} migrated, ${totalErrors} errors, ${totalWarnings} warnings`);
@@ -407,9 +396,7 @@ export function renderMarkdownReport(report: MigrationReport): string {
     }
 
     if (report.patientMatching.manualReview.count > report.patientMatching.manualReview.examples.length) {
-      const remaining =
-        report.patientMatching.manualReview.count -
-        report.patientMatching.manualReview.examples.length;
+      const remaining = report.patientMatching.manualReview.count - report.patientMatching.manualReview.examples.length;
       lines.push(`- ... and ${remaining} more cases (see JSON report for complete list)`);
     }
 
@@ -429,9 +416,7 @@ export function renderMarkdownReport(report: MigrationReport): string {
     }
 
     if (report.patientMatching.noMatch.count > report.patientMatching.noMatch.examples.length) {
-      const remaining =
-        report.patientMatching.noMatch.count -
-        report.patientMatching.noMatch.examples.length;
+      const remaining = report.patientMatching.noMatch.count - report.patientMatching.noMatch.examples.length;
       lines.push(`... and ${remaining} more cases (see JSON report for complete list)`);
     }
 
@@ -443,9 +428,7 @@ export function renderMarkdownReport(report: MigrationReport): string {
   if (report.patientMatching.possibleDuplicatesInTarget.length > 0) {
     lines.push('## Possible Duplicates in Destination');
     lines.push('');
-    lines.push(
-      'The following pairs of patients in the destination may be duplicates (same or very similar names):',
-    );
+    lines.push('The following pairs of patients in the destination may be duplicates (same or very similar names):');
     lines.push('');
 
     for (const dup of report.patientMatching.possibleDuplicatesInTarget) {
@@ -460,9 +443,7 @@ export function renderMarkdownReport(report: MigrationReport): string {
   if (report.errors.length > 0) {
     lines.push('## Errors');
     lines.push('');
-    lines.push(
-      'The following rows could not be migrated due to errors and were excluded:',
-    );
+    lines.push('The following rows could not be migrated due to errors and were excluded:');
     lines.push('');
     lines.push('| Table | Source ID | Message |');
     lines.push('|-------|-----------|---------|');

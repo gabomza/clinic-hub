@@ -33,11 +33,13 @@ migration-script/
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Create a `.env` file from `.env.example`:
+
    ```bash
    cp .env.example .env
    ```
@@ -57,20 +59,26 @@ migration-script/
 ## Module Descriptions
 
 ### Config (`src/config/`)
+
 **Responsible for:** Loading and validating configuration from CLI flags, environment variables, and defaults.
+
 - Exports: `MigrationConfig` type, `loadConfig(argv, env)` function
 - Behavior: Fail-fast validation (missing `DATABASE_URL` or invalid thresholds cause immediate error)
 - Used by: `migrate.ts` (CLI entry point) and all modules that need configuration
 
 ### Parser (`src/parser/`)
+
 **Responsible for:** Stream-based parsing of MySQL dump files without loading entire file into memory.
+
 - Exports: `parseMysqlDump(filePath)`, `ParsedTable` type, `DumpParseResult` type
 - Features: Multi-row INSERT support, escape sequence handling, CREATE TABLE structure extraction
 - Handles: Large files efficiently via readline streaming; validates table names against scope
 - Used by: `MigrationOrchestrator` (Tarea 15 step 2)
 
 ### Database (`src/db/`)
+
 **Responsible for:** PostgreSQL connection management and low-level database operations.
+
 - Exports: `PostgresClient` (connection pool wrapper), `MigrationLogStore` (idempotency control)
 - Features:
   - `PostgresClient.insertBatch()` — parametrized multi-VALUES inserts with configurable batch size
@@ -79,7 +87,9 @@ migration-script/
 - Used by: All migrators for data insertion and idempotency checks
 
 ### Matcher (`src/matcher/`)
+
 **Responsible for:** Fuzzy matching of patient names using Jaro-Winkler algorithm with normalized text.
+
 - Exports: `PatientMatcher`, `PatientCandidate` type, `MatchOutcome` type
 - Features:
   - Two matching modes: `full_name` (0.6×last_name + 0.4×first_name) and `last_name_only` (single-field)
@@ -89,34 +99,37 @@ migration-script/
 - Used by: `SurgeryMigrator`, `AppointmentMigrator`, `ClinicalRecordMigrator` (patient linking)
 
 ### Migrators (`src/migrators/`)
+
 **Responsible for:** Table-specific data transformation and migration logic.
 
 - **`ReferenceDataMigrator`** — Doctors, health insurances, visit reasons, schedules
   - Detects duplicate entries (case-insensitive normalization)
   - Preserves legacy IDs and adjusts PostgreSQL sequences
-  
+
 - **`PatientMigrator`** — Main patient entity migration (fichas → patients)
   - Resolves doctor references; handles sentinel dates (0000-00-00 → NULL)
   - Retains consultation fees in memory for later use by clinical records
-  
+
 - **`SurgeryMigrator`** — Surgeries with techniques (cirugias → surgeries + surgery_applied_techniques)
   - `populateLookups()` — Extracts and normalizes diagnoses, body parts, techniques
   - `migrate()` — Links surgeries to patients via fuzzy matching; applies multiple techniques per surgery
-  
+
 - **`AppointmentMigrator`** — Appointments (inst_turnos → appointments)
   - Validates schedule existence; maps status codes to enums
   - Resolves patient via last-name-only fuzzy matching
-  
+
 - **`ClinicalRecordMigrator`** — Clinical notes (historiaclinica → clinical_records)
   - Normalizes HTML formatting (converts `<br>` variants to newlines)
   - Retrieves consultation fees from patient migration state
-  
+
 - **`CashEntryMigrator`** — Cash journal entries (caja → cash_entries)
   - Converts VARCHAR comma-decimal to DECIMAL (e.g., "1500,50" → 1500.50)
   - Classifies entries as income or expense; excludes ambiguous/invalid entries
 
 ### Report (`src/report/`)
+
 **Responsible for:** Consolidating migration events and generating dual-format reports.
+
 - Exports: `ReportBuilder`, `MigrationReport` type
 - Features:
   - JSON report — Machine-readable audit trail with all tables, errors, warnings, matches
@@ -126,7 +139,9 @@ migration-script/
 - Used by: `MigrationOrchestrator` (Tarea 15 step 15–16)
 
 ### Orchestrator (`src/orchestrator/`)
+
 **Responsible for:** Coordinating the complete migration pipeline and managing cross-module dependencies.
+
 - Exports: `MigrationOrchestrator`, `createMigrationOrchestrator()` factory
 - Features:
   - Executes all 16 migration steps in correct dependency order
@@ -189,6 +204,7 @@ Configure the migration behavior through environment variables. All variables ca
 CLI flags > Environment variables > `.env` file > Built-in defaults
 
 Example `.env.example`:
+
 ```bash
 DATABASE_URL=postgresql://user:password@localhost:5432/fichas
 DUMP_FILE_PATH=/path/to/production_dump.sql
@@ -202,11 +218,13 @@ INSERT_BATCH_SIZE=500
 ## Testing
 
 Run tests with:
+
 ```bash
 npm test
 ```
 
 Run specific test file:
+
 ```bash
 npm test -- src/parser/__tests__/parser.test.ts
 ```
@@ -244,6 +262,7 @@ npm run dev
 ### Reset Modes
 
 **Safe Re-run (log-only):**
+
 ```bash
 # First run
 npm run dev -- --dump-file dump.sql
@@ -253,6 +272,7 @@ npm run dev -- --dump-file dump.sql
 ```
 
 **Full Reset (destructive):**
+
 ```bash
 # Clear all migrated data and restart from scratch
 npm run dev -- --dump-file dump.sql --reset full
@@ -263,7 +283,9 @@ npm run dev -- --dump-file dump.sql --reset full
 After each run, two reports are generated in `REPORT_OUTPUT_DIR`:
 
 ### JSON Report (`migration-report-<timestamp>.json`)
+
 Machine-readable audit trail containing:
+
 - `summaryByTable` — Row counts per table (migrated, reused, excluded, errors)
 - `excludedTables` — Tables explicitly out of scope (inst_alt, medias, ventamedias)
 - `patientMatching` — Fuzzy matching results (auto-linked, manual-review, no-match counts)
@@ -273,7 +295,9 @@ Machine-readable audit trail containing:
 - `startedAt`, `completedAt`, `duration` — Execution timeline
 
 ### Markdown Report (`migration-report-<timestamp>.md`)
+
 Human-readable summary with:
+
 - Table-by-table statistics with formatted tables
 - Patient matching breakdown with example names
 - List of possible duplicates for manual review
@@ -299,6 +323,7 @@ CREATE TABLE migration_log (
 ```
 
 When re-running a migration:
+
 1. For each source row, compute SHA256 hash of its content
 2. Query `migration_log` for matching (source_table, source_pk)
 3. If found and payload_hash matches → **reuse** (no reinsertion)
@@ -306,6 +331,7 @@ When re-running a migration:
 5. If not found → **insert** as new row
 
 This guarantees:
+
 - **No duplicates** on re-runs (same dump, same result)
 - **Deterministic** (same input always produces same output)
 - **Safe** (if network fails midway, resuming continues from where it left off)
@@ -313,16 +339,19 @@ This guarantees:
 ### Recovery Scenarios
 
 **Scenario 1: Partial failure (some rows inserted, then network drops)**
+
 - Run migration again with same `--reset log-only` (default)
 - Script continues from where it left off
 - Only new rows are inserted; previously-successful rows are reused
 
 **Scenario 2: Source data corrected (need to reimport with updated values)**
+
 - Update the dump file with corrected data
 - Run with `--reset full` to clear everything and start fresh
 - ⚠️ WARNING: This deletes all migrated data; use with caution in production
 
 **Scenario 3: Schema changes in destination**
+
 - Clear the control table: `DELETE FROM migration_log;`
 - Run migration again
 - Script will attempt to re-insert all rows (may fail on new constraints)
@@ -337,6 +366,7 @@ The migration implements fail-soft error recovery:
 - **Transactional errors** (entire batch fails) — **Retry fila-por-fila** (reinsertion of individual rows in degraded mode)
 
 Each error is logged with context:
+
 - Row number in source
 - Source table + primary key
 - Specific constraint violated
@@ -374,4 +404,3 @@ TypeScript strict mode is enabled for type safety. Path aliases are configured f
 import { loadConfig } from '@config/index';
 import { parseMysqlDump } from '@parser/index';
 ```
-

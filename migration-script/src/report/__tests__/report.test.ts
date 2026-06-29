@@ -165,9 +165,7 @@ describe('ReportBuilder', () => {
       const report = builder.build(new Date());
 
       expect(report.patientMatching.possibleDuplicatesInTarget).toHaveLength(1);
-      expect(report.patientMatching.possibleDuplicatesInTarget[0].candidates).toContain(
-        'GONZALEZ, JUAN',
-      );
+      expect(report.patientMatching.possibleDuplicatesInTarget[0].candidates).toContain('GONZALEZ, JUAN');
       expect(report.patientMatching.possibleDuplicatesInTarget[0].score).toBe(0.93);
     });
   });
@@ -828,9 +826,7 @@ describe('ReportBuilder', () => {
             warnings: 1,
           },
         },
-        excludedTables: [
-          { name: 'inst_alt', reason: 'No equivalent in new schema' },
-        ],
+        excludedTables: [{ name: 'inst_alt', reason: 'No equivalent in new schema' }],
         patientMatching: {
           autoLinked: { outcome: 'auto_linked', count: 45, examples: [] },
           manualReview: { outcome: 'manual_review', count: 3, examples: [] },
@@ -971,4 +967,3 @@ describe('ReportBuilder', () => {
     });
   });
 });
-

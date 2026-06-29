@@ -1,6 +1,7 @@
 # Data Migration Script - Task List
 
 ## Feature: data-migration-script
+
 Migration script from MySQL to PostgreSQL (Supabase) for the Medical Institute system.
 
 ---
@@ -173,4 +174,4 @@ migration-script/
 - Path aliases are configured for clean imports (@config, @parser, etc.)
 - TypeScript strict mode is enabled
 - Vitest is configured for unit and integration testing
-- Each module has corresponding __tests__ directory with todo tests
+- Each module has corresponding **tests** directory with todo tests

@@ -43,9 +43,7 @@ describe('normalizeText', () => {
     it('should handle mixed accents and Ñ', () => {
       expect(normalizeText('Peña González')).toBe('PEÑA GONZALEZ');
       expect(normalizeText('María José García')).toBe('MARIA JOSE GARCIA');
-      expect(normalizeText('José María Pérez García')).toBe(
-        'JOSE MARIA PEREZ GARCIA',
-      );
+      expect(normalizeText('José María Pérez García')).toBe('JOSE MARIA PEREZ GARCIA');
     });
 
     it('should preserve case distinction between N and Ñ', () => {
@@ -94,7 +92,7 @@ describe('normalizeText', () => {
     it('should remove common punctuation marks', () => {
       expect(normalizeText("O'Brien")).toBe('OBRIEN');
       expect(normalizeText('García, López')).toBe('GARCIA LOPEZ');
-      expect(normalizeText("saint-louis")).toBe('SAINTLOUIS');
+      expect(normalizeText('saint-louis')).toBe('SAINTLOUIS');
       expect(normalizeText('Smith, Jr.')).toBe('SMITH JR');
     });
 
@@ -114,12 +112,8 @@ describe('normalizeText', () => {
 
     it('should respect removePunctuation option', () => {
       expect(normalizeText("O'Brien", { removePunctuation: false })).toBe("O'BRIEN");
-      expect(normalizeText('García, López', { removePunctuation: false })).toBe(
-        'GARCIA, LOPEZ',
-      );
-      expect(normalizeText('saint-louis', { removePunctuation: false })).toBe(
-        'SAINT-LOUIS',
-      );
+      expect(normalizeText('García, López', { removePunctuation: false })).toBe('GARCIA, LOPEZ');
+      expect(normalizeText('saint-louis', { removePunctuation: false })).toBe('SAINT-LOUIS');
     });
   });
 
@@ -140,9 +134,7 @@ describe('normalizeText', () => {
 
   describe('real-world dataset cases', () => {
     it('should handle real names from sample_dump.sql', () => {
-      expect(normalizeText('María José Martínez García')).toBe(
-        'MARIA JOSE MARTINEZ GARCIA',
-      );
+      expect(normalizeText('María José Martínez García')).toBe('MARIA JOSE MARTINEZ GARCIA');
       expect(normalizeText('Peña González López')).toBe('PEÑA GONZALEZ LOPEZ');
       expect(normalizeText("O'Donnell-Smith")).toBe('ODONNELLSMITH');
     });
@@ -248,7 +240,7 @@ describe('normalizeText', () => {
     });
 
     it('should be deterministic', () => {
-      const input = "María José García, López";
+      const input = 'María José García, López';
       const result1 = normalizeText(input);
       const result2 = normalizeText(input);
       expect(result1).toBe(result2);

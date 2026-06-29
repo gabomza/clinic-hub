@@ -117,15 +117,7 @@ function normalizeMaritalStatus(estadoCivil?: string): {
     return { value: null };
   }
 
-  const validValues = [
-    'single',
-    'married',
-    'divorced',
-    'widowed',
-    'separated',
-    'common_law',
-    'other',
-  ];
+  const validValues = ['single', 'married', 'divorced', 'widowed', 'separated', 'common_law', 'other'];
 
   // Try direct match
   if (validValues.includes(estadoCivil)) {
@@ -184,10 +176,7 @@ function resolveDoctorId(
 /**
  * Select phone: prioritize particular > trabajo
  */
-function selectPhone(
-  telefonoParticular?: string,
-  telefonoTrabajo?: string,
-): string | null {
+function selectPhone(telefonoParticular?: string, telefonoTrabajo?: string): string | null {
   const particular = telefonoParticular?.trim() || '';
   const trabajo = telefonoTrabajo?.trim() || '';
 

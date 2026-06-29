@@ -120,9 +120,7 @@ export interface PatientMatcher {
    * @param candidatePool Array of patients to check for duplicates
    * @returns Array of duplicate pairs with similarity scores
    */
-  detectDuplicatesInPool(
-    candidatePool: PatientCandidate[],
-  ): Array<{
+  detectDuplicatesInPool(candidatePool: PatientCandidate[]): Array<{
     candidateA: PatientCandidate;
     candidateB: PatientCandidate;
     score: number;
@@ -133,23 +131,17 @@ export interface PatientMatcher {
  * Factory function to create a PatientMatcher with the given configuration.
  * Requirement 6.9, 10.2
  */
-export function createPatientMatcher(
-  config: PatientMatcherConfig = {},
-): PatientMatcher {
+export function createPatientMatcher(config: PatientMatcherConfig = {}): PatientMatcher {
   const confidenceThreshold = config.confidenceThreshold ?? 0.92;
   const minConsiderationThreshold = config.minConsiderationThreshold ?? 0.75;
   const ambiguityMargin = config.ambiguityMargin ?? 0.05;
 
   // Validate thresholds (fail-fast, Requirement 10.6)
   if (confidenceThreshold < 0 || confidenceThreshold > 1) {
-    throw new Error(
-      `Invalid confidenceThreshold: ${confidenceThreshold}, must be between 0 and 1`,
-    );
+    throw new Error(`Invalid confidenceThreshold: ${confidenceThreshold}, must be between 0 and 1`);
   }
   if (minConsiderationThreshold < 0 || minConsiderationThreshold > 1) {
-    throw new Error(
-      `Invalid minConsiderationThreshold: ${minConsiderationThreshold}, must be between 0 and 1`,
-    );
+    throw new Error(`Invalid minConsiderationThreshold: ${minConsiderationThreshold}, must be between 0 and 1`);
   }
   if (ambiguityMargin < 0 || ambiguityMargin > 1) {
     throw new Error(`Invalid ambiguityMargin: ${ambiguityMargin}, must be between 0 and 1`);
@@ -172,9 +164,7 @@ export function createPatientMatcher(
       return Math.max(0, Math.min(1, distance));
     } catch (err) {
       // If normalization or distance calculation fails, return 0 (no match)
-      console.warn(
-        `jaroWinkler error comparing "${a}" vs "${b}": ${err instanceof Error ? err.message : 'unknown'}`,
-      );
+      console.warn(`jaroWinkler error comparing "${a}" vs "${b}": ${err instanceof Error ? err.message : 'unknown'}`);
       return 0;
     }
   }
@@ -203,10 +193,7 @@ export function createPatientMatcher(
    * Calculate score for last_name_only mode.
    * Requirement 6.5: direct comparison of last names only
    */
-  function calculateLastNameOnlyScore(
-    input: { lastName: string },
-    candidate: PatientCandidate,
-  ): number {
+  function calculateLastNameOnlyScore(input: { lastName: string }, candidate: PatientCandidate): number {
     return jaroWinkler(input.lastName, candidate.lastName);
   }
 
@@ -234,8 +221,7 @@ export function createPatientMatcher(
     if (mode === 'last_name_only' && !lastName) {
       return {
         outcome: 'no_match',
-        reason:
-          'last_name_only mode requires a non-empty lastName, but got empty string',
+        reason: 'last_name_only mode requires a non-empty lastName, but got empty string',
       };
     }
 
@@ -256,9 +242,7 @@ export function createPatientMatcher(
     }
 
     // Requirement 6.3, 6.4: Filter by minimum consideration threshold
-    const consideredCandidates = scores.filter(
-      (s) => s.score >= minConsiderationThreshold,
-    );
+    const consideredCandidates = scores.filter((s) => s.score >= minConsiderationThreshold);
 
     if (consideredCandidates.length === 0) {
       return {
@@ -317,9 +301,7 @@ export function createPatientMatcher(
    * Detect possible duplicate patients in the pool.
    * Requirement 6.10: self-comparison of the pool, excluding diagonal
    */
-  function detectDuplicatesInPool(
-    candidatePool: PatientCandidate[],
-  ): Array<{
+  function detectDuplicatesInPool(candidatePool: PatientCandidate[]): Array<{
     candidateA: PatientCandidate;
     candidateB: PatientCandidate;
     score: number;
