@@ -334,7 +334,7 @@ describe('CashEntryMigrator', () => {
           idCaja: 30,
           ingresosCaja: '',
           egresosCaja: '',
-          conceptoCaja: null,
+          conceptoCaja: undefined,
           fechaCaja: '2023-06-18',
         },
       ];
@@ -758,7 +758,7 @@ describe('CashEntryMigrator', () => {
           idCaja: 4,
           ingresosCaja: '',
           egresosCaja: '',
-          conceptoCaja: null,
+          conceptoCaja: undefined,
           fechaCaja: '2023-06-18',
         },
         // Case 5: Invalid date
