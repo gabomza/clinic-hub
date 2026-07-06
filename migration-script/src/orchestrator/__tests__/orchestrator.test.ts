@@ -25,12 +25,17 @@ const TEST_DATABASE_URL =
  * Path to sample dump for integration testing
  * Expected to exist at project root or be provided by CI
  */
-const SAMPLE_DUMP_PATH = path.join(__dirname, '../../../..', 'sample_dump.sql');
+const SAMPLE_DUMP_PATH = path.join(__dirname, '../../../..', 'db', 'sample_dump.sql');
 
 /**
- * Path to database schema file
+ * Path to database schema file (DDL only)
  */
-const SCHEMA_SQL_PATH = path.join(__dirname, '../../../..', 'schema.sql');
+const SCHEMA_SQL_PATH = path.join(__dirname, '../../../..', 'db', 'schema.sql');
+
+/**
+ * Path to database seed file (reference data)
+ */
+const SEED_SQL_PATH = path.join(__dirname, '../../../..', 'db', 'seed.sql');
 
 /**
  * Helper: Check if test database is available
@@ -55,28 +60,31 @@ async function setupTestDatabase(): Promise<void> {
   if (!fs.existsSync(SCHEMA_SQL_PATH)) {
     throw new Error(`Schema SQL not found at ${SCHEMA_SQL_PATH}`);
   }
+  if (!fs.existsSync(SEED_SQL_PATH)) {
+    throw new Error(`Seed SQL not found at ${SEED_SQL_PATH}`);
+  }
 
   const pool = new Pool({ connectionString: TEST_DATABASE_URL });
 
   try {
-    // Read and execute schema
-    const schemaSql = fs.readFileSync(SCHEMA_SQL_PATH, 'utf-8');
+    const applyFile = async (filePath: string, label: string) => {
+      const sql = fs.readFileSync(filePath, 'utf-8');
+      const statements = sql
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && !s.startsWith('--'));
 
-    // Split by semicolons and execute each statement
-    const statements = schemaSql
-      .split(';')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith('--'));
-
-    for (const statement of statements) {
-      try {
-        await pool.query(statement);
-      } catch (err) {
-        // Some statements may fail (e.g., IF EXISTS on non-existent objects in some dialects)
-        // This is acceptable during schema setup
-        console.log(`[SCHEMA SETUP] Ignoring error: ${(err as Error).message}`);
+      for (const statement of statements) {
+        try {
+          await pool.query(statement);
+        } catch (err) {
+          console.log(`[${label}] Ignoring error: ${(err as Error).message}`);
+        }
       }
-    }
+    };
+
+    await applyFile(SCHEMA_SQL_PATH, 'SCHEMA SETUP');
+    await applyFile(SEED_SQL_PATH, 'SEED SETUP');
   } finally {
     await pool.end();
   }
